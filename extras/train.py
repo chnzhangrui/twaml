@@ -5,28 +5,34 @@ from twaml.data import dataset
 from twaml.data import scale_weight_sum
 import matplotlib.pyplot as plt
 
-from net import Net
-
 class Train(object):
     def describe(self): return self.__class__.__name__
-    def __init__(self, name = '2j2b', signal_h5 = 'tW_DR_2j2b.h5', signal_name = 'tW_DR_2j2b', signal_tree = 'wt_DR_nominal', weight_name = 'EventWeight',
+    def __init__(self, name = '2j2b', base_directory = './', signal_h5 = 'tW_DR_2j2b.h5', signal_name = 'tW_DR_2j2b', signal_tree = 'wt_DR_nominal', weight_name = 'EventWeight',
             backgd_h5 = 'ttbar_2j2b.h5', backgd_name = 'ttbar_2j2b', backgd_tree = 'tt_nominal',):
         self.name = name
-        self.signal = dataset.from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label=1)
-        self.backgd = dataset.from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label=0)
-        sow = self.signal.weights.sum() + self.backgd.weights.sum()
+        self.signal_label, self.backgd_label = 1, 0
+        self.signal_latex, self.backgd_latex = r'$tW$', r'$t\bar{t}$'
+        self.signal = dataset.from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label = self.signal_label)
+        self.backgd = dataset.from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label)
+        rm_var = ['runNumber', 'randomRunNumber', 'eventNumber', 'OS', 'SS', 'elmu', 'elel', 'mumu', 'reg1j1b', 'reg2j1b', 'reg2j2b', 'reg1j0b', 'reg2j0b', 'reg3j', 'reg4j', 'reg3j1b', 'reg3j2b', 'reg4j1b', 'reg3pj', 'reg2j2bLmm', 'reg2j2bHmm', 'pT_lep1', 'pT_lep2', 'pT_jet1', 'pT_jetL1', 'pT_jetF', 'eta_lep1', 'eta_lep2', 'eta_jet1', 'eta_jet2', 'eta_jetL1', 'eta_jetF', 'phi_lep1', 'phi_lep2', 'phi_jet1', 'phi_jet2', 'phi_jetL1', 'phi_jetF', 'E_lep1', 'E_lep2', 'E_jet1', 'E_jet2', 'E_jetL1', 'E_jetF', 'mass_jet1', 'mass_jet2', 'mass_jetL1', 'mass_jetF', 'met', 'eta_met', 'phi_met', 'sumet', 'njets', 'nbjets', 'nloosejets', 'nloosebjets', 'minimaxmbl', 'pdgId_lep1', 'pdgId_lep2', 'charge_lep1', 'charge_lep2', 'mv2c10_jet1', 'mv2c10_jet2', 'mv2c10_jetF', 'DL1_jetF', 'psuedoContTagBin_jet1', 'psuedoContTagBin_jet2', 'psuedoContTagBin_jetF', 'mT_jet1met', 'mT_lep1met', 'mT_lep2met', 'eta_jetAvg', 'deltaR_lep1lep2jetC_jetF', 'mass_lep1lep2', 'mass_jet1jet2', 'HT_lep1lep2met', 'deltaR_lep2_jet2', 'deltaR_lep1_lep2', 'deltaR_lep1lep2_jet1jet2', 'deltaR_lep2_jet1', 'deltaR_lep1lep2_jet1jet2met', 'deltaR_lep1_jet2', 'cent_lep1lep2', 'pTsys_lep1lep2jet1jet2met', 'pTsys_lep1lep2jet1met', 'pTsys_lep1lep2', 'deltapT_jet1_met', 'deltapT_lep1_lep2', 'deltapT_lep1_lep2jet1met', 'deltapT_lep1_jet1', 'deltapT_lep2_jet2', 'deltapT_lep1lep2jet1_met', 'sigpTsys_lep1lep2jet1met', 'cent_lep1met', 'pTsys_lep1lep2jet1']
+        self.signal.rmcolumns(rm_var)
+        self.backgd.rmcolumns(rm_var)
+        self.output_path = '/'.join([base_directory, self.describe()]) + '/'
+        print('zhangr', self.signal.shape, self.signal.cols)
 
         # Equalise signal weights to background weights
         scale_weight_sum(self.signal, self.backgd)
 
-        self.y = np.concatenate([self.signal.label_asarray, self.backgd.label_asarray])
         self.X = np.concatenate([self.signal.df.to_numpy(), self.backgd.df.to_numpy()])
+        self.y = np.concatenate([self.signal.label_asarray, self.backgd.label_asarray])
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
 
-    def simple_net(self):
-        net = Net(layer_number = 4)
-        net.build(input_dimension = self.X.shape[1])
-        self.model = net.model
+    @property
+    def shape(self):
+        return self.signal.shape[1]
+
+    def model(self, model):
+        self.model = model
 
     def split(self, nfold = 2, seed = 666):
         ''' Split sample to training and test portions using KFold '''
@@ -45,9 +51,25 @@ class Train(object):
             self.y_train[i], self.y_test[i] = self.y[train_idx], self.y[test_idx]
             self.w_train[i], self.w_test[i] = self.w[train_idx], self.w[test_idx]
 
+    def train(self, epochs = 2, fold = 0):
+        self.epochs = epochs
+        self.fold = fold
+        return self.model.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
+                    validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]),  epochs = self.epochs)
+
+    def evaluate(self, result):
+        self.model.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
+        self.model.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
+
     def plotLoss(self, result):
         ''' Plot loss functions '''
+        if self.epochs < 2:
+            print('Only', self.epochs, 'epochs, no need for plotLoss.')
+            return
 
+        import os
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
         # Summarise history for accuracy
         plt.plot(result.history['acc'])
         plt.plot(result.history['val_acc'])
@@ -55,7 +77,7 @@ class Train(object):
         plt.ylabel('Accuracy')
         plt.xlabel('Epoch')
         plt.legend(['Train', 'Test'], loc='upper left')
-        plt.savefig('png/' + self.name + '_acc' + '.pdf', format='pdf')
+        plt.savefig(self.output_path + self.name + '_acc' + '.pdf', format='pdf')
         plt.clf()
         # Summarise history for loss
         plt.plot(result.history['loss'])
@@ -64,39 +86,48 @@ class Train(object):
         plt.ylabel('Loss')
         plt.xlabel('Epoch')
         plt.legend(['Train', 'Test'], loc='upper right')
-        plt.savefig('png/' + self.name + '_loss' + '.pdf', format='pdf')
+        plt.savefig(self.output_path + self.name + '_loss' + '.pdf', format='pdf')
         plt.clf()
 
-    def plotROC(self):
+    def plotResults(self, xlo = 0., xhi = 1, nbin = 20):
         from sklearn.metrics import roc_curve, auc
+        import os
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
 
-        train_predict = self.model.predict(self.X_train[self.which_fold])
-        test_predict = self.model.predict(self.X_test[self.which_fold])
+        train_predict = self.model.predict(self.X_train[self.fold])
+        test_predict = self.model.predict(self.X_test[self.fold])
 
-        train_FP, train_TP, train_TH = roc_curve(self.y_train[self.which_fold], train_predict)
-        test_FP, test_TP, test_TH = roc_curve(self.y_test[self.which_fold], test_predict)
+        train_FP, train_TP, train_TH = roc_curve(self.y_train[self.fold], train_predict)
+        test_FP, test_TP, test_TH = roc_curve(self.y_test[self.fold], test_predict)
         train_AUC = auc(train_FP, train_TP)
         test_AUC = auc(test_FP, test_TP)
-        print(train_AUC, test_AUC)
 
         plt.title('Receiver Operating Characteristic')
-        plt.plot(train_FP, train_TP, 'g--', label='Train AUC = %0.2f'% train_AUC)
-        plt.plot(test_FP, test_TP, 'b', label='Test AUC = %0.2f'% test_AUC)
-
-        plt.legend(['Train', 'Test'], loc='upper right')
+        plt.plot(train_FP, train_TP, 'g--', label='Train AUC = %2.1f%%'% (train_AUC * 100))
+        plt.plot(test_FP, test_TP, 'b', label='Test  AUC = %2.1f%%'% (test_AUC * 100))
+        plt.legend(loc='lower right')
+        
         plt.plot([0,1],[0,1],'r--')
         plt.xlim([-0.,1.])
         plt.ylim([-0.,1.])
         plt.ylabel('True Positive Rate')
         plt.xlabel('False Positive Rate')
-        plt.savefig('png/' + self.name + '_ROC' + '.pdf', format='pdf')
+        plt.savefig(self.output_path + self.name + '_ROC' + '.pdf', format='pdf')
         plt.clf()
 
-    def train(self, epochs = 2, fold = 0):
-        self.which_fold = fold
-        return self.model.fit(self.X_train[self.which_fold], self.y_train[self.which_fold], sample_weight = self.w_train[self.which_fold], 
-                    validation_data = (self.X_test[self.which_fold], self.y_test[self.which_fold], self.w_test[self.which_fold]),  epochs = epochs)
+        names = ['Absolute', 'Normalised']
+        for density in [0, 1]:
+            plt.subplot(1, 2, density + 1)
 
-    def evaluate(self, result):
-        self.model.evaluate(self.X_train[self.which_fold], self.y_train[self.which_fold], sample_weight = self.w_train[self.which_fold], verbose=0)
-        self.model.evaluate(self.X_test[self.which_fold], self.y_test[self.which_fold], sample_weight = self.w_test[self.which_fold], verbose=0)
+            plt.hist(train_predict[self.y_train[self.fold] == self.signal_label], range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Training ' + self.signal_latex)
+            plt.hist(train_predict[self.y_train[self.fold] == self.backgd_label], range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Training ' + self.backgd_latex)
+            plt.hist(test_predict[self.y_test[self.fold] == self.signal_label],   range = [xlo, xhi], bins = nbin, histtype = "step", density = density, label='Test ' + self.signal_latex, linestyle = 'dashed')
+            plt.hist(test_predict[self.y_test[self.fold] == self.backgd_label],   range = [xlo, xhi], bins = nbin, histtype = "step", density = density, label='Test ' + self.backgd_latex, linestyle = 'dashed')
+            plt.ylim(0, plt.gca().get_ylim()[1] * 1.5)
+            plt.legend()
+            plt.xlabel('Response', horizontalalignment = 'left', fontsize = 'large')
+            plt.title(names[density])
+
+        plt.savefig(self.output_path + self.name + '_response' + '.pdf', format='pdf')
+        plt.clf()

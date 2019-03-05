@@ -6,13 +6,13 @@ from twaml.data import dataset
 from twaml.data import scale_weight_sum
 import matplotlib.pyplot as plt
 
-ttbar = dataset.from_pytables("ttbar_1j1b.h5", "ttbar_1j1b", label=0)
-tW_DR = dataset.from_pytables("tW_DR_1j1b.h5", "tW_DR_1j1b", label=1)
+ttbar = dataset.from_pytables("ttbar_1j1b.h5", "ttbar", label=0)
+tW_DR = dataset.from_pytables("tW_DR_1j1b.h5", "tW_DR", label=1)
 sow = ttbar.weights.sum() + tW_DR.weights.sum()
 mwfl = sow * 0.01
 scale_weight_sum(tW_DR, ttbar)
 
-y = np.concatenate([tW_DR.label_array, ttbar.label_array])
+y = np.concatenate([tW_DR.label_asarray, ttbar.label_asarray])
 X = np.concatenate([tW_DR.df.to_numpy(), ttbar.df.to_numpy()])
 w = np.concatenate([tW_DR.weights, ttbar.weights])
 
