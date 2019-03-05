@@ -49,5 +49,7 @@ class Job(object):
         self.trainer.plotLoss(self.result)
         self.trainer.plotResults()
 
-job = Job(nfold = 3, train_fold = 0, epochs = 50, layer_number = 10, node_number = 50, lr = 0.01, momentum = 0.8)
+job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 10, node_number = 100, lr = 0.01, momentum = 0.8)
+job.run()
+job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 10, node_number = 30, lr = 0.01, momentum = 0.8)
 job.run()

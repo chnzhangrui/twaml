@@ -14,11 +14,11 @@ class Train(object):
         self.signal_latex, self.backgd_latex = r'$tW$', r'$t\bar{t}$'
         self.signal = dataset.from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label = self.signal_label)
         self.backgd = dataset.from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label)
-        rm_var = ['runNumber', 'randomRunNumber', 'eventNumber', 'OS', 'SS', 'elmu', 'elel', 'mumu', 'reg1j1b', 'reg2j1b', 'reg2j2b', 'reg1j0b', 'reg2j0b', 'reg3j', 'reg4j', 'reg3j1b', 'reg3j2b', 'reg4j1b', 'reg3pj', 'reg2j2bLmm', 'reg2j2bHmm', 'pT_lep1', 'pT_lep2', 'pT_jet1', 'pT_jetL1', 'pT_jetF', 'eta_lep1', 'eta_lep2', 'eta_jet1', 'eta_jet2', 'eta_jetL1', 'eta_jetF', 'phi_lep1', 'phi_lep2', 'phi_jet1', 'phi_jet2', 'phi_jetL1', 'phi_jetF', 'E_lep1', 'E_lep2', 'E_jet1', 'E_jet2', 'E_jetL1', 'E_jetF', 'mass_jet1', 'mass_jet2', 'mass_jetL1', 'mass_jetF', 'met', 'eta_met', 'phi_met', 'sumet', 'njets', 'nbjets', 'nloosejets', 'nloosebjets', 'minimaxmbl', 'pdgId_lep1', 'pdgId_lep2', 'charge_lep1', 'charge_lep2', 'mv2c10_jet1', 'mv2c10_jet2', 'mv2c10_jetF', 'DL1_jetF', 'psuedoContTagBin_jet1', 'psuedoContTagBin_jet2', 'psuedoContTagBin_jetF', 'mT_jet1met', 'mT_lep1met', 'mT_lep2met', 'eta_jetAvg', 'deltaR_lep1lep2jetC_jetF', 'mass_lep1lep2', 'mass_jet1jet2', 'HT_lep1lep2met', 'deltaR_lep2_jet2', 'deltaR_lep1_lep2', 'deltaR_lep1lep2_jet1jet2', 'deltaR_lep2_jet1', 'deltaR_lep1lep2_jet1jet2met', 'deltaR_lep1_jet2', 'cent_lep1lep2', 'pTsys_lep1lep2jet1jet2met', 'pTsys_lep1lep2jet1met', 'pTsys_lep1lep2', 'deltapT_jet1_met', 'deltapT_lep1_lep2', 'deltapT_lep1_lep2jet1met', 'deltapT_lep1_jet1', 'deltapT_lep2_jet2', 'deltapT_lep1lep2jet1_met', 'sigpTsys_lep1lep2jet1met', 'cent_lep1met', 'pTsys_lep1lep2jet1']
-        self.signal.rmcolumns(rm_var)
-        self.backgd.rmcolumns(rm_var)
+        variables = ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2']
+        self.signal.keep_columns(variables)
+        self.backgd.keep_columns(variables)
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
-        print('zhangr', self.signal.shape, self.signal.cols)
+        print(self.describe(), self.signal.df.__getitem__)
 
         # Equalise signal weights to background weights
         scale_weight_sum(self.signal, self.backgd)
