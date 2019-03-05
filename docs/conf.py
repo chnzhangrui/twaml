@@ -47,8 +47,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
-    "m2r",
     "sphinxcontrib.programoutput",
+    "m2r",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -102,15 +102,15 @@ html_theme_options = {
     "fixed_sidebar": True,
     "show_powered_by": False,
     "code_font_size": "0.8em",
-    #"head_font_family": '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
-    #"font_family": '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
+    # "head_font_family": '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
+    # "font_family": '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
     "code_font_family": '"Fira Code", "Roboto Mono", monospace',
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -200,18 +200,18 @@ epub_exclude_files = ["search.html"]
 # -- Extension configuration -------------------------------------------------
 
 autodoc_mock_imports = [
-    'numpy',
-    'keras',
-    'torch',
-    'uproot',
-    'tables',
-    'tensorflow',
-    'pandas',
-    'matplotlib',
-    'h5py'
+    "numpy",
+    "keras",
+    "torch",
+    "uproot",
+    "tables",
+    "tensorflow",
+    "pandas",
+    "matplotlib",
+    "h5py",
 ]
 
-autoclass_content = 'both'
+autoclass_content = "both"
 
 # -- Options for intersphinx extension ---------------------------------------
 

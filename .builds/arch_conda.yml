@@ -33,3 +33,7 @@ tasks:
       python setup.py sdist bdist_wheel
       ls -lh dist
       python .ci-scripts/srht-pypi.py
+triggers:
+  - action: email
+    condition: failure
+    to: "<ddavis@ddavis.io>"

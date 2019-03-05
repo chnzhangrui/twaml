@@ -196,3 +196,37 @@ def test_scale_weight_sum():
 def test_cleanup():
     os.remove("outfile.h5")
     assert True
+
+
+def test_columnkeeping():
+    ds1 = dataset.from_root(
+        ["tests/data/test_file.root"],
+        name="myds",
+        branches=["met", "sumet", "pT_jet2", "reg2j2b"],
+        extra_weights=["pT_lep1", "pT_lep2", "pT_jet1"],
+    )
+    keep_c = ["reg2j2b", "pT_jet2"]
+    keep_w = ["pT_lep1", "pT_jet1"]
+    ds1.keep_columns(keep_c)
+    ds1.keep_weights(keep_w)
+    list_of_col = list(ds1.df.columns)
+    list_of_exw = list(ds1.extra_weights.columns)
+    assert keep_c == list_of_col
+    assert keep_w == list_of_exw
+
+
+def test_columnrming():
+    ds1 = dataset.from_root(
+        ["tests/data/test_file.root"],
+        name="myds",
+        branches=["met", "sumet", "pT_jet2", "reg2j2b"],
+        extra_weights=["pT_lep1", "pT_lep2", "pT_jet1"],
+    )
+
+    ds1.rmcolumns(["met", "sumet"])
+    list_of_cols = list(ds1.df.columns)
+    assert (
+        len(list_of_cols) == 2
+        and "pT_jet2" in list_of_cols
+        and "reg2j2b" in list_of_cols
+    )

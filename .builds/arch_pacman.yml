@@ -20,3 +20,7 @@ tasks:
       cd twaml
       sudo pip install .
       pytest
+triggers:
+  - action: email
+    condition: failure
+    to: "<ddavis@ddavis.io>"

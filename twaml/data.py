@@ -160,6 +160,27 @@ class dataset:
             assert len(df) == len(extra), "unequal length df and extra weights"
             self._extra_weights = extra
 
+    def keep_columns(self, cols: List[str]) -> None:
+        """Drop all columns not included in ``cols``
+
+        Parameters
+        ----------
+        cols: List[str]
+          Columns to keep
+        """
+        self._df = self._df[cols]
+
+    def keep_weights(self, weights: List[str]) -> None:
+        """Drop all columns from the extra weights frame that are not in
+        ``weights``
+
+        Parameters
+        ----------
+        weights: List[str]
+          Weights to keep in the extra weights frame
+        """
+        self._extra_weights = self._extra_weights[weights]
+
     def rm_weight_columns(self) -> None:
         """Remove all payload df columns which begin with ``weight_``
 
@@ -189,7 +210,7 @@ class dataset:
           Regex used to remove columns
         """
         pat = re.compile(pattern)
-        rmthese = [c for c in self_.df.columns if re.search(pat, c)]
+        rmthese = [c for c in self._df.columns if re.search(pat, c)]
         self._df.drop(columns=rmthese, inplace=True)
 
     def rmcolumns(self, cols: List[str]) -> None:
