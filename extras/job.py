@@ -1,10 +1,10 @@
-from net import Net
+from net import DeepNet, AdvNet
 from train import Train
 
 class Job(object):
     def describe(self): return self.__class__.__name__
-    def __init__(self, name = None, output = None, nfold = 3, train_fold = 0, epochs = 10, layer_number = 4, node_number = 20, lr = 0.02, momentum = 0.8):
-        self.output = 'l{}n{}_lr{}_mom{}'.format(layer_number, node_number, lr, momentum) if output is None else output
+    def __init__(self, name = None, output = None, nfold = 3, train_fold = 0, epochs = 10, layer_number = 4, node_number = 20, lr = 0.02, momentum = 0.8, activation = 'relu'):
+        self.output = 'l{}n{}_lr{}_mom{}_{}_f{}_e{}'.format(layer_number, node_number, lr, momentum, activation, nfold, epochs) if output is None else output
         self.name = self.output if name is None else name
         self.nfold = nfold
         # Train the "train_fold"-th fold
@@ -14,6 +14,7 @@ class Job(object):
         self.node_number = node_number
         self.lr = lr
         self.momentum = momentum
+        self.activation = activation
 
     def run(self):
         # ''' An instance of Train for data handling '''
@@ -38,10 +39,10 @@ class Job(object):
         self.trainer = Train(**para_train_v28)
         self.trainer.split(nfold = 3)
 
-        ''' An instance of Net for network construction and pass it to Train '''
-        self.net = Net(layer_number = self.layer_number, node_number = self.node_number)
-        self.net.build(input_dimension = self.trainer.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
-        self.trainer.model(self.net.model)
+        ''' An instance of DeepNet for network construction and pass it to Train '''
+        self.deepnet = DeepNet(layer_number = self.layer_number, node_number = self.node_number, hidden_activation = self.activation)
+        self.deepnet.build(input_dimension = self.trainer.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
+        self.trainer.network(self.deepnet.dnn)
         
         ''' Run the training '''
         self.result = self.trainer.train(epochs = self.epochs, fold = self.train_fold)
@@ -49,7 +50,92 @@ class Job(object):
         self.trainer.plotLoss(self.result)
         self.trainer.plotResults()
 
-job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 10, node_number = 100, lr = 0.01, momentum = 0.8)
-job.run()
-job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 10, node_number = 30, lr = 0.01, momentum = 0.8)
-job.run()
+
+    def run2(self):
+
+
+        para_train_Gen = {'name': '2j2b',
+            'base_directory': self.output,
+            'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DR_2j2b.h5',
+            'signal_name': 'tW_DR',
+            'signal_tree': 'wt_DR_nominal',
+            'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/ttbar_2j2b.h5',
+            'backgd_name': 'ttbar',
+            'backgd_tree': 'tt_nominal',
+            'weight_name': 'weight_nominal'}
+        self.trainer_Gen = Train(**para_train_Gen)
+        self.trainer_Gen.split(nfold = 3)
+
+        para_train_Dis = {'name': 'NP',
+            'base_directory': self.output,
+            'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DR_2j2b.h5',
+            'signal_name': 'tW_DR',
+            'signal_tree': 'wt_DR_nominal',
+            'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
+            'backgd_name': 'tW_DS',
+            'backgd_tree': 'wt_DS_nominal',
+            'weight_name': 'weight_nominal'}
+        self.trainer_Dis = Train(**para_train_Dis)
+        self.trainer_Dis.split(nfold = 3)
+
+        ''' An instance of DeepNet for network construction and pass it to Train '''
+        self._Generator = DeepNet(name = 'Adv_Gen', layer_number = self.layer_number, node_number = self.node_number, hidden_activation = self.activation)
+        self._Generator.build(input_dimension = self.trainer_Gen.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
+    
+        self._Discriminator = DeepNet(name = 'Adv_Dis', single_input = True, layer_number = self.layer_number, node_number = self.node_number, hidden_activation = self.activation)
+        self._Discriminator.build(input_dimension = self.trainer_Gen.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
+
+        self.advnet = AdvNet(generator = self._Generator, discriminator = self._Discriminator)
+        self.advnet.build(input_dimension = self.trainer_Gen.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
+
+        for i in range(3):
+            self.trainer_Gen.network(self.advnet.adv)
+            self.advnet.Dis.make_trainable(False)
+            self.advnet.Gen.make_trainable(True)
+            self.result = self.trainer_Gen.train(epochs = self.epochs, fold = self.train_fold)
+            self.trainer_Gen.network.summary()
+
+            self.advnet.Dis.make_trainable(True)
+            self.advnet.Gen.make_trainable(False)
+            self.trainer_Dis.network(self.advnet.Dis.dnn)
+            self.result = self.trainer_Dis.train(epochs = self.epochs, fold = self.train_fold)
+            self.trainer_Dis.network.summary()
+
+
+
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 20, node_number = 100, lr = 0.01, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 20, node_number = 30, lr = 0.01, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 20, node_number = 100, lr = 0.01, momentum = 0.4)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 20, node_number = 30, lr = 0.01, momentum = 0.4)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 20, node_number = 50, lr = 0.02, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 20, node_number = 30, lr = 0.02, momentum = 0.8) # the best 75.2
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 20, node_number = 30, lr = 0.03, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 10, node_number = 30, lr = 0.03, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 10, node_number = 50, lr = 0.03, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 10, node_number = 100, lr = 0.03, momentum = 0.8) # the best 76.7
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 10, node_number = 150, lr = 0.03, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 5, node_number = 30, lr = 0.02, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 5, node_number = 50, lr = 0.02, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 5, node_number = 100, lr = 0.02, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 5, node_number = 30, lr = 0.03, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 5, node_number = 50, lr = 0.03, momentum = 0.8)
+# job.run()
+# job = Job(nfold = 3, train_fold = 0, epochs = 500, layer_number = 5, node_number = 100, lr = 0.03, momentum = 0.8)
+# job.run()
+job = Job(output = 'test2', nfold = 3, train_fold = 0, epochs = 1, layer_number = 1, node_number = 10, lr = 0.01, momentum = 0.8)
+job.run2()

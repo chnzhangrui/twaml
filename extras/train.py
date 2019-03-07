@@ -31,8 +31,8 @@ class Train(object):
     def shape(self):
         return self.signal.shape[1]
 
-    def model(self, model):
-        self.model = model
+    def network(self, network):
+        self.network = network
 
     def split(self, nfold = 2, seed = 666):
         ''' Split sample to training and test portions using KFold '''
@@ -54,12 +54,12 @@ class Train(object):
     def train(self, epochs = 2, fold = 0):
         self.epochs = epochs
         self.fold = fold
-        return self.model.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
+        return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                     validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]),  epochs = self.epochs)
 
     def evaluate(self, result):
-        self.model.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
-        self.model.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
+        self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
+        self.network.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
 
     def plotLoss(self, result):
         ''' Plot loss functions '''
@@ -73,7 +73,7 @@ class Train(object):
         # Summarise history for accuracy
         plt.plot(result.history['acc'])
         plt.plot(result.history['val_acc'])
-        plt.title('model accuracy')
+        plt.title('network accuracy')
         plt.ylabel('Accuracy')
         plt.xlabel('Epoch')
         plt.legend(['Train', 'Test'], loc='upper left')
@@ -82,7 +82,7 @@ class Train(object):
         # Summarise history for loss
         plt.plot(result.history['loss'])
         plt.plot(result.history['val_loss'])
-        plt.title('model loss')
+        plt.title('network loss')
         plt.ylabel('Loss')
         plt.xlabel('Epoch')
         plt.legend(['Train', 'Test'], loc='upper right')
@@ -95,8 +95,8 @@ class Train(object):
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
 
-        train_predict = self.model.predict(self.X_train[self.fold])
-        test_predict = self.model.predict(self.X_test[self.fold])
+        train_predict = self.network.predict(self.X_train[self.fold])
+        test_predict = self.network.predict(self.X_test[self.fold])
 
         train_FP, train_TP, train_TH = roc_curve(self.y_train[self.fold], train_predict)
         test_FP, test_TP, test_TH = roc_curve(self.y_test[self.fold], test_predict)
