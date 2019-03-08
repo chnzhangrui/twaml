@@ -1,4 +1,4 @@
-from net import DeepNet, AdvNet, CompNet
+from net import DeepNet
 from train import Train
 
 class Job(object):
@@ -75,39 +75,34 @@ class Job(object):
             'backgd_name': 'tW_DS',
             'backgd_tree': 'wt_DS_nominal',
             'weight_name': 'weight_nominal'}
-        self.trainer_Com = Train(**para_train_Dis)
-        self.trainer_Com.split(nfold = 3)
+        self.trainer_Adv = Train(**para_train_Dis)
+        self.trainer_Adv.split(nfold = 3)
 
         ''' An instance of DeepNet for network construction and pass it to Train '''
-        self._Generator = DeepNet(name = 'Adv_Gen', hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
-        self._Generator.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
-    
-        self._Discriminator = DeepNet(name = 'Adv_Dis', single_input = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
-        self._Discriminator.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
-
-        self.advnet = AdvNet(generator = self._Generator, discriminator = self._Discriminator)
+        self.advnet = DeepNet(name = 'AdvNN', build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
         self.advnet.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
+    
+        # self.advnet = AdvNet(generator = self._Generator, discriminator = self._Discriminator)
+        # self.advnet.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
 
-        self.compnet = CompNet(generator = self._Generator, adversary = self.advnet)
-        self.compnet.build(lam = 10)
+        # self.compnet = CompNet(generator = self._Generator, adversary = self._Discriminator)
+        # self.compnet.build(lam = 10)
+
 
         for i in range(2):
             print('zhangr', i)
-            self.advnet.Dis.make_trainable(False)
-            self.advnet.Gen.make_trainable(True)
-            print(self.trainer_Com.shape, self.trainer_Adv.shape)
-            print('zhang eee', len(self.compnet.com._layers), vars(self.compnet.com))
-            self.compnet.com.summary()
-            print('zhang fff', len(self.advnet.adv._layers), vars(self.advnet.adv))
-            self.advnet.adv.summary()
-            self.trainer_Com.getNetwork(self.compnet.com)
-            print('zhangrui 0')
-            self.result = self.trainer_Com.train(epochs = self.epochs, fold = self.train_fold)
+            DeepNet.make_trainable(self.advnet.discriminator, False)
+            DeepNet.make_trainable(self.advnet.generator, True)
+            self.advnet.generator.summary()
+            self.advnet.discriminator.summary()
+            self.advnet.adversary.summary()
+            self.trainer_Adv.getNetwork(self.advnet.adversary)
+            self.result = self.trainer_Adv.train(epochs = self.epochs, fold = self.train_fold)
 
-            # self.advnet.Dis.make_trainable(True)
-            # self.advnet.Gen.make_trainable(False)
-            # self.advnet.adv.summary()
-            # self.trainer_Adv.getNetwork(self.advnet.adv)
+            # DeepNet.make_trainable(self.advnet.discriminator, True)
+            # DeepNet.make_trainable(self.advnet.generator, False)
+            # self.advnet.adversary.summary()
+            # self.trainer_Adv.getNetwork(self.advnet.discriminator)
             # self.result = self.trainer_Adv.train(epochs = self.epochs, fold = self.train_fold)
 
 
@@ -146,5 +141,5 @@ class Job(object):
 # job.run()
 # job = Job(nfold = 3, train_fold = 0, epochs = 500, hidden_Nlayer = 5, hidden_Nnode = 100, lr = 0.03, momentum = 0.8)
 # job.run()
-job = Job(output = 'test1', nfold = 3, train_fold = 0, epochs = 1, hidden_Nlayer = 1, hidden_Nnode = 10, lr = 0.01, momentum = 0.8)
+job = Job(output = 'test1', nfold = 3, train_fold = 0, epochs = 1, hidden_Nlayer = 3, hidden_Nnode = 10, lr = 0.01, momentum = 0.8)
 job.run2()
