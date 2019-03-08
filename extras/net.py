@@ -4,32 +4,34 @@ from keras.models import Model
 from keras.optimizers import SGD
 from keras.utils.vis_utils import plot_model
 # from keras.layers.advanced_activations import LeakyReLU
-from keras.models import Sequential
 import keras.backend as K
 
 class DeepNet(object):
     ''' Define a deep forward neural network '''
 
     def describe(self): return self.__class__.__name__
-    def __init__(self, name = 'deepnet', single_input = False, layer_number = 1, node_number = 20, hidden_activation = 'relu', output_activation = 'sigmoid'):
+    def __init__(self, name = 'deepnet', single_input = False, hidden_Nlayer = 1, hidden_Nnode = 20, hidden_activation = 'relu', output_activation = 'sigmoid'):
         self.name = name
         self.single_input = single_input
-        self.layer_number = layer_number
-        self.node_number = node_number
+        self.hidden_Nlayer = hidden_Nlayer
+        assert (self.hidden_Nlayer > 0)
+        self.hidden_Nnode = hidden_Nnode
         self.hidden_activation = hidden_activation
         self.output_activation = output_activation
 
     def build(self, input_dimension = None, base_directory = './', lr = 0.02, momentum = 0.8, plot = True):
         self.input_dimension = 1 if self.single_input else input_dimension
-        self.dnn = Sequential(name = self.name)
 
         # Input layer
-        self.dnn.add(Dense(10, activation = self.hidden_activation, input_dim = self.input_dimension, name = self.name + '_layer1')) #TODO
+        self.inputLayer = Input(shape=(self.input_dimension,), name = self.name + '_layer0_input')
         # Hidden layer
-        for i in range(self.layer_number):
-            self.dnn.add(Dense(10, activation = self.hidden_activation, name = self.name + '_layer' + str(i+2)))
+        self.outputLayers = Dense(self.hidden_Nnode, activation = self.hidden_activation, name = self.name + '_layer1')(self.inputLayer)
+        for i in range(self.hidden_Nlayer - 1):
+            self.outputLayers = Dense(self.hidden_Nnode, activation = self.hidden_activation, name = self.name + '_layer' + str(i+2))(self.outputLayers)
         # Output layer
-        self.dnn.add(Dense(1, activation = self.output_activation, name = self.name + '_output'))
+        self.outputLayers = Dense(1, activation = self.output_activation, name = self.name + '_output')(self.outputLayers)
+        self.dnn = Model(inputs=[self.inputLayer], outputs=[self.outputLayers], name = self.name)
+
         sgd = SGD(lr = lr, momentum = momentum)
         self.dnn.compile(loss = 'binary_crossentropy', optimizer = sgd, metrics=['accuracy'])
         if plot:
@@ -40,6 +42,7 @@ class DeepNet(object):
             plot_model(self.dnn, to_file = self.output_path + self.name + '.png')
             print('zhang aaa', len(self.dnn._layers), self.single_input, self.input_dimension)
             self.dnn.summary()
+
 
     def make_trainable(self, flag):
         self.dnn.trainable = flag
@@ -66,9 +69,6 @@ class AdvNet(object):
         self.adv = self.Gen.dnn
         self.adv.name = 'Adversarial'
         self.adv.add(self.Dis.dnn)
-        # self.adv = Sequential(name = 'Adversarial')
-        # self.adv.add(self.Gen.dnn)
-        # self.adv.add(self.Dis.dnn)
 
         sgd = SGD(lr = lr, momentum = momentum)
         self.adv.compile(loss = 'binary_crossentropy', optimizer = sgd, metrics=['accuracy'])
