@@ -14,7 +14,8 @@ class Train(object):
         self.signal_latex, self.backgd_latex = r'$tW$', r'$t\bar{t}$'
         self.signal = dataset.from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label = self.signal_label)
         self.backgd = dataset.from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label)
-        variables = ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2']
+        # variables = ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2']
+        variables = ['mass_lep1jet2', 'mass_lep1jet1']
         self.signal.keep_columns(variables)
         self.backgd.keep_columns(variables)
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
@@ -31,8 +32,8 @@ class Train(object):
     def shape(self):
         return self.signal.shape[1]
 
-    def network(self, network):
-        self.network = network
+    def getNetwork(self, net):
+        self.network = net
 
     def split(self, nfold = 2, seed = 666):
         ''' Split sample to training and test portions using KFold '''

@@ -5,6 +5,7 @@ from keras.optimizers import SGD
 from keras.utils.vis_utils import plot_model
 # from keras.layers.advanced_activations import LeakyReLU
 from keras.models import Sequential
+import keras.backend as K
 
 class DeepNet(object):
     ''' Define a deep forward neural network '''
@@ -23,13 +24,13 @@ class DeepNet(object):
         self.dnn = Sequential(name = self.name)
 
         # Input layer
-        self.dnn.add(Dense(10, activation = self.hidden_activation, input_dim = self.input_dimension, name = self.name + '_input'))
+        self.dnn.add(Dense(10, activation = self.hidden_activation, input_dim = self.input_dimension, name = self.name + '_layer1')) #TODO
         # Hidden layer
         for i in range(self.layer_number):
             self.dnn.add(Dense(10, activation = self.hidden_activation, name = self.name + '_layer' + str(i+2)))
         # Output layer
         self.dnn.add(Dense(1, activation = self.output_activation, name = self.name + '_output'))
-        sgd = SGD(lr=lr, momentum=momentum)
+        sgd = SGD(lr = lr, momentum = momentum)
         self.dnn.compile(loss = 'binary_crossentropy', optimizer = sgd, metrics=['accuracy'])
         if plot:
             import os
@@ -37,6 +38,7 @@ class DeepNet(object):
             if not os.path.exists(self.output_path):
                 os.makedirs(self.output_path)
             plot_model(self.dnn, to_file = self.output_path + self.name + '.png')
+            print('zhang aaa', len(self.dnn._layers), self.single_input, self.input_dimension)
             self.dnn.summary()
 
     def make_trainable(self, flag):
@@ -44,7 +46,7 @@ class DeepNet(object):
         self.dnn.compile
 
 class AdvNet(object):
-    ''' Define the adversarial neural network which is just a generator followed by a discriminator.
+    ''' Define the adversarial neural network part which is just a generator followed by a discriminator.
     Notice that the weights of the discriminator have been frozen.
     [generator]: separation signal from background
     [discriminator]: predict nuisance parameter
@@ -61,11 +63,14 @@ class AdvNet(object):
         ''' Freeze the weight of the discriminator '''
         # self.Dis.trainable = False
 
-        self.adv = Sequential()
-        self.adv.add(self.Gen.dnn)
+        self.adv = self.Gen.dnn
+        self.adv.name = 'Adversarial'
         self.adv.add(self.Dis.dnn)
+        # self.adv = Sequential(name = 'Adversarial')
+        # self.adv.add(self.Gen.dnn)
+        # self.adv.add(self.Dis.dnn)
 
-        sgd = SGD(lr=lr, momentum=momentum)
+        sgd = SGD(lr = lr, momentum = momentum)
         self.adv.compile(loss = 'binary_crossentropy', optimizer = sgd, metrics=['accuracy'])
         if plot:
             import os
@@ -73,4 +78,43 @@ class AdvNet(object):
             if not os.path.exists(self.output_path):
                 os.makedirs(self.output_path)
             plot_model(self.adv, to_file = self.output_path + self.name + '.png')
+            print('zhang bbb', len(self.adv._layers))
             self.adv.summary()
+
+
+class CompNet(object):
+    ''' Define the composed neural network of generator and adversarial.
+    [generator]: separation signal from background
+    [adversarial]: contains generator and discriminator
+    '''
+
+    def describe(self): return self.__class__.__name__
+    def __init__(self, name = 'compnet', generator = None, adversary = None):
+        self.name = name
+        self.Gen = generator
+        self.Adv = adversary
+        assert (self.Gen.dnn.inputs is self.Adv.adv.inputs)
+
+    def build(self, base_directory = './', lam = 10, lr = 0.02, momentum = 0.8, plot = True):
+        ''' Freeze the weight of the discriminator '''
+
+        self.com = Model(inputs = self.Adv.adv.inputs, outputs = [self.Gen.dnn.outputs[0], self.Adv.adv.outputs[0]])
+        print('zhang ccc', len(self.com._layers), )
+        self.com.summary()
+
+        def loss(c):
+            def _loss(z_true, z_pred):
+                return c * K.binary_crossentropy(z_true, z_pred)
+            return _loss
+
+        sgd = SGD(lr = lr, momentum = momentum)
+        self.com.compile(loss=[loss(c=1.0), loss(c=-lam)], optimizer = sgd, metrics=['accuracy'])
+
+        if plot:
+            import os
+            self.output_path = '/'.join([base_directory, self.describe()]) + '/'
+            if not os.path.exists(self.output_path):
+                os.makedirs(self.output_path)
+            plot_model(self.com, to_file = self.output_path + self.name + '.png')
+            print('zhang ddd', len(self.com._layers), )
+            self.com.summary()

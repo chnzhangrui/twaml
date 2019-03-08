@@ -1,4 +1,4 @@
-from net import DeepNet, AdvNet
+from net import DeepNet, AdvNet, CompNet
 from train import Train
 
 class Job(object):
@@ -42,7 +42,7 @@ class Job(object):
         ''' An instance of DeepNet for network construction and pass it to Train '''
         self.deepnet = DeepNet(layer_number = self.layer_number, node_number = self.node_number, hidden_activation = self.activation)
         self.deepnet.build(input_dimension = self.trainer.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
-        self.trainer.network(self.deepnet.dnn)
+        self.trainer.getNetwork(self.deepnet.dnn)
         
         ''' Run the training '''
         self.result = self.trainer.train(epochs = self.epochs, fold = self.train_fold)
@@ -63,8 +63,8 @@ class Job(object):
             'backgd_name': 'ttbar',
             'backgd_tree': 'tt_nominal',
             'weight_name': 'weight_nominal'}
-        self.trainer_Gen = Train(**para_train_Gen)
-        self.trainer_Gen.split(nfold = 3)
+        self.trainer_Adv = Train(**para_train_Gen)
+        self.trainer_Adv.split(nfold = 3)
 
         para_train_Dis = {'name': 'NP',
             'base_directory': self.output,
@@ -75,31 +75,40 @@ class Job(object):
             'backgd_name': 'tW_DS',
             'backgd_tree': 'wt_DS_nominal',
             'weight_name': 'weight_nominal'}
-        self.trainer_Dis = Train(**para_train_Dis)
-        self.trainer_Dis.split(nfold = 3)
+        self.trainer_Com = Train(**para_train_Dis)
+        self.trainer_Com.split(nfold = 3)
 
         ''' An instance of DeepNet for network construction and pass it to Train '''
         self._Generator = DeepNet(name = 'Adv_Gen', layer_number = self.layer_number, node_number = self.node_number, hidden_activation = self.activation)
-        self._Generator.build(input_dimension = self.trainer_Gen.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
+        self._Generator.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
     
         self._Discriminator = DeepNet(name = 'Adv_Dis', single_input = True, layer_number = self.layer_number, node_number = self.node_number, hidden_activation = self.activation)
-        self._Discriminator.build(input_dimension = self.trainer_Gen.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
+        self._Discriminator.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
 
         self.advnet = AdvNet(generator = self._Generator, discriminator = self._Discriminator)
-        self.advnet.build(input_dimension = self.trainer_Gen.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
+        self.advnet.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
 
-        for i in range(3):
-            self.trainer_Gen.network(self.advnet.adv)
+        self.compnet = CompNet(generator = self._Generator, adversary = self.advnet)
+        self.compnet.build(lam = 10)
+
+        for i in range(2):
+            print('zhangr', i)
             self.advnet.Dis.make_trainable(False)
             self.advnet.Gen.make_trainable(True)
-            self.result = self.trainer_Gen.train(epochs = self.epochs, fold = self.train_fold)
-            self.trainer_Gen.network.summary()
+            print(self.trainer_Com.shape, self.trainer_Adv.shape)
+            print('zhang eee', len(self.compnet.com._layers), vars(self.compnet.com))
+            self.compnet.com.summary()
+            print('zhang fff', len(self.advnet.adv._layers), vars(self.advnet.adv))
+            self.advnet.adv.summary()
+            self.trainer_Com.getNetwork(self.compnet.com)
+            print('zhangrui 0')
+            self.result = self.trainer_Com.train(epochs = self.epochs, fold = self.train_fold)
 
-            self.advnet.Dis.make_trainable(True)
-            self.advnet.Gen.make_trainable(False)
-            self.trainer_Dis.network(self.advnet.Dis.dnn)
-            self.result = self.trainer_Dis.train(epochs = self.epochs, fold = self.train_fold)
-            self.trainer_Dis.network.summary()
+            # self.advnet.Dis.make_trainable(True)
+            # self.advnet.Gen.make_trainable(False)
+            # self.advnet.adv.summary()
+            # self.trainer_Adv.getNetwork(self.advnet.adv)
+            # self.result = self.trainer_Adv.train(epochs = self.epochs, fold = self.train_fold)
 
 
 
