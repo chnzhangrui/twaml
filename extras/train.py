@@ -7,23 +7,23 @@ import matplotlib.pyplot as plt
 
 class Train(object):
     def describe(self): return self.__class__.__name__
-    def __init__(self, name = '2j2b', base_directory = './', signal_h5 = 'tW_DR_2j2b.h5', signal_name = 'tW_DR_2j2b', signal_tree = 'wt_DR_nominal',
-            no_syssig = True, syssig_h5 = 'tW_DS_2j2b.h5', syssig_name = 'tW_DS_2j2b', syssig_tree = 'tW_DS', 
-            backgd_h5 = 'ttbar_2j2b.h5', backgd_name = 'ttbar_2j2b', backgd_tree = 'tt_nominal', weight_name = 'EventWeight'):
+    def __init__(self, name = '2j2b', base_directory = './', signal_h5 = 'tW_DR_2j2b.h5', signal_name = 'tW_DR_2j2b', signal_tree = 'wt_DR_nominal', signal_latex = r'$tW$',
+            backgd_h5 = 'ttbar_2j2b.h5', backgd_name = 'ttbar_2j2b', backgd_tree = 'tt_nominal', backgd_latex =  r'$t\bar{t}$', weight_name = 'EventWeight',
+            variables = ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2'],
+            no_syssig = True, syssig_h5 = 'tW_DS_2j2b.h5', syssig_name = 'tW_DS_2j2b', syssig_tree = 'tW_DS', syssig_latex = r'$tW$ DS',
+            ):
         self.name = name
         self.signal_label, self.backgd_label, self.center_label, self.syssig_label = 1, 0, 1, 0
-        self.signal_latex, self.backgd_latex = r'$tW$', r'$t\bar{t}$'
-        self.no_syssig = no_syssig
-        self.syssig_latex = None if self.no_syssig else r'$tW$ DS'
+        self.signal_latex, self.backgd_latex = signal_latex, backgd_latex
         self.signal = dataset.from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.center_label)
         self.backgd = dataset.from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label, auxlabel = self.center_label)
-        self.syssig = None if self.no_syssig else dataset.from_pytables(syssig_h5, syssig_name, tree_name = syssig_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.syssig_label)
-        # variables = ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2']
-        variables = ['mass_lep1jet2', 'mass_lep1jet1']
         self.signal.keep_columns(variables)
         self.backgd.keep_columns(variables)
+        self.no_syssig = no_syssig
+        self.syssig_latex = None if self.no_syssig else syssig_latex
 
-        if self.syssig:
+        if self.no_syssig:
+            self.syssig = dataset.from_pytables(syssig_h5, syssig_name, tree_name = syssig_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.syssig_label)
             self.syssig.keep_columns(variables)
 
             # Append syssig to signal
@@ -71,15 +71,16 @@ class Train(object):
         '''
         self.epochs = epochs
         self.fold = fold
+        self.network.summary()
         if mode == 0:
             assert (self.no_syssig)
             print(self.X_test[self.fold].shape, self.y_test[self.fold].shape, self.w_test[self.fold].shape)
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
-                    validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]),  epochs = self.epochs)
+                    validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs)
         elif mode == 1:
             assert (not self.no_syssig)
             return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
-                    validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]),  epochs = self.epochs)
+                    validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = 1)
 
         elif mode == 2:
             assert (not self.no_syssig)

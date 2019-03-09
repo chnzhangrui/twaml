@@ -68,10 +68,13 @@ class DeepNet(object):
             self.output_path = '/'.join([base_directory, self.describe()]) + '/'
             if not os.path.exists(self.output_path):
                 os.makedirs(self.output_path)
+            print('\n\n==> \033[92mNetwork 1\033[0m')
             self.generator.summary()
-            plot_model(self.generator, to_file = self.output_path + self.name + '.png')
+            plot_model(self.generator, to_file = self.output_path + self.name + '_generator.png')
             if self.build_dis:
+                print('\n\n==> \033[92mNetwork 2\033[0m')
                 self.discriminator.summary()
+                print('\n\n==> \033[92mCombined network\033[0m')
                 self.adversary.summary()
-                plot_model(self.discriminator, to_file = self.output_path + self.name + '.png')
-                plot_model(self.adversary, to_file = self.output_path + self.name + '.png')
+                plot_model(self.discriminator, to_file = self.output_path + self.name + '_discriminator.png')
+                plot_model(self.adversary, to_file = self.output_path + self.name + '_adversary.png')
