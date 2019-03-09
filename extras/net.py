@@ -69,9 +69,12 @@ class DeepNet(object):
             if not os.path.exists(self.output_path):
                 os.makedirs(self.output_path)
             plot_model(self.generator, to_file = self.output_path + self.name + '.png')
+            print('zhang generator')
             self.generator.summary()
             if self.build_dis:
+                print('zhang discriminator')
                 self.discriminator.summary()
+                print('zhang adversary')
                 self.adversary.summary()
                 plot_model(self.discriminator, to_file = self.output_path + self.name + '.png')
                 plot_model(self.adversary, to_file = self.output_path + self.name + '.png')

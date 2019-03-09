@@ -53,57 +53,45 @@ class Job(object):
 
     def run2(self):
 
-
-        para_train_Gen = {'name': '2j2b',
+        para_train_Adv = {'name': 'NP',
             'base_directory': self.output,
             'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DR_2j2b.h5',
             'signal_name': 'tW_DR',
             'signal_tree': 'wt_DR_nominal',
+            'no_system': False,
+            'system_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
+            'system_name': 'tW_DS',
+            'system_tree': 'wt_DS', 
             'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/ttbar_2j2b.h5',
             'backgd_name': 'ttbar',
             'backgd_tree': 'tt_nominal',
             'weight_name': 'weight_nominal'}
-        self.trainer_Adv = Train(**para_train_Gen)
-        self.trainer_Adv.split(nfold = 3)
-
-        para_train_Dis = {'name': 'NP',
-            'base_directory': self.output,
-            'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DR_2j2b.h5',
-            'signal_name': 'tW_DR',
-            'signal_tree': 'wt_DR_nominal',
-            'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
-            'backgd_name': 'tW_DS',
-            'backgd_tree': 'wt_DS_nominal',
-            'weight_name': 'weight_nominal'}
-        self.trainer_Adv = Train(**para_train_Dis)
+        self.trainer_Adv = Train(**para_train_Adv)
         self.trainer_Adv.split(nfold = 3)
 
         ''' An instance of DeepNet for network construction and pass it to Train '''
         self.advnet = DeepNet(name = 'AdvNN', build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
         self.advnet.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
     
-        # self.advnet = AdvNet(generator = self._Generator, discriminator = self._Discriminator)
-        # self.advnet.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
-
-        # self.compnet = CompNet(generator = self._Generator, adversary = self._Discriminator)
-        # self.compnet.build(lam = 10)
-
-
         for i in range(2):
             print('zhangr', i)
             DeepNet.make_trainable(self.advnet.discriminator, False)
             DeepNet.make_trainable(self.advnet.generator, True)
+            print('zhang job generator')
             self.advnet.generator.summary()
+            print('zhang job discriminator')
             self.advnet.discriminator.summary()
+            print('zhang job adversary')
             self.advnet.adversary.summary()
             self.trainer_Adv.getNetwork(self.advnet.adversary)
             self.result = self.trainer_Adv.train(epochs = self.epochs, fold = self.train_fold)
 
-            # DeepNet.make_trainable(self.advnet.discriminator, True)
-            # DeepNet.make_trainable(self.advnet.generator, False)
-            # self.advnet.adversary.summary()
-            # self.trainer_Adv.getNetwork(self.advnet.discriminator)
-            # self.result = self.trainer_Adv.train(epochs = self.epochs, fold = self.train_fold)
+            DeepNet.make_trainable(self.advnet.discriminator, True)
+            DeepNet.make_trainable(self.advnet.generator, False)
+            print('zhang job adversary 2')
+            self.advnet.adversary.summary()
+            self.trainer_Adv.getNetwork(self.advnet.discriminator)
+            self.result = self.trainer_Adv.trainAdv(epochs = self.epochs, fold = self.train_fold)
 
 
 
