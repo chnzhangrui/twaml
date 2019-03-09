@@ -42,7 +42,7 @@ class Job(object):
         ''' An instance of DeepNet for network construction and pass it to Train '''
         self.deepnet = DeepNet(hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
         self.deepnet.build(input_dimension = self.trainer.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
-        self.trainer.getNetwork(self.deepnet.dnn)
+        self.trainer.getNetwork(self.deepnet.generator)
         
         ''' Run the training '''
         self.result = self.trainer.train(epochs = self.epochs, fold = self.train_fold)
@@ -76,15 +76,11 @@ class Job(object):
         for i in range(2):
             DeepNet.make_trainable(self.advnet.discriminator, False)
             DeepNet.make_trainable(self.advnet.generator, True)
-            self.advnet.generator.summary()
-            self.advnet.discriminator.summary()
-            self.advnet.adversary.summary()
             self.trainer_Adv.getNetwork(self.advnet.adversary)
             self.result = self.trainer_Adv.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 
             DeepNet.make_trainable(self.advnet.discriminator, True)
             DeepNet.make_trainable(self.advnet.generator, False)
-            self.advnet.adversary.summary()
             self.trainer_Adv.getNetwork(self.advnet.discriminator)
             self.result = self.trainer_Adv.train(mode = 1, epochs = self.epochs, fold = self.train_fold)
 
@@ -125,4 +121,4 @@ class Job(object):
 # job = Job(nfold = 3, train_fold = 0, epochs = 500, hidden_Nlayer = 5, hidden_Nnode = 100, lr = 0.03, momentum = 0.8)
 # job.run()
 job = Job(output = 'test1', nfold = 3, train_fold = 0, epochs = 1, hidden_Nlayer = 3, hidden_Nnode = 10, lr = 0.01, momentum = 0.8)
-job.run2()
+job.run()
