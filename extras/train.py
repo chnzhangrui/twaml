@@ -8,36 +8,34 @@ import matplotlib.pyplot as plt
 class Train(object):
     def describe(self): return self.__class__.__name__
     def __init__(self, name = '2j2b', base_directory = './', signal_h5 = 'tW_DR_2j2b.h5', signal_name = 'tW_DR_2j2b', signal_tree = 'wt_DR_nominal',
-            no_system = True, system_h5 = 'tW_DS_2j2b.h5', system_name = 'tW_DS_2j2b', system_tree = 'tW_DS', 
+            no_syssig = True, syssig_h5 = 'tW_DS_2j2b.h5', syssig_name = 'tW_DS_2j2b', syssig_tree = 'tW_DS', 
             backgd_h5 = 'ttbar_2j2b.h5', backgd_name = 'ttbar_2j2b', backgd_tree = 'tt_nominal', weight_name = 'EventWeight'):
         self.name = name
-        self.signal_label, self.backgd_label, self.center_label, self.system_label = 1, 0, 1, 0
+        self.signal_label, self.backgd_label, self.center_label, self.syssig_label = 1, 0, 1, 0
         self.signal_latex, self.backgd_latex = r'$tW$', r'$t\bar{t}$'
-        self.no_system = no_system
-        self.system_latex = None if self.no_system else r'$tW$ DS'
+        self.no_syssig = no_syssig
+        self.syssig_latex = None if self.no_syssig else r'$tW$ DS'
         self.signal = dataset.from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.center_label)
-        self.backgd = dataset.from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label)
-        self.system = None if self.no_system else dataset.from_pytables(system_h5, system_name, tree_name = system_tree, weight_name = weight_name, auxlabel = self.system_label)
+        self.backgd = dataset.from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label, auxlabel = self.center_label)
+        self.syssig = None if self.no_syssig else dataset.from_pytables(syssig_h5, syssig_name, tree_name = syssig_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.syssig_label)
         # variables = ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2']
         variables = ['mass_lep1jet2', 'mass_lep1jet1']
         self.signal.keep_columns(variables)
         self.backgd.keep_columns(variables)
+
+        if self.syssig:
+            self.syssig.keep_columns(variables)
+
+            # Append syssig to signal
+            self.signal.append(self.syssig)
+
         # Equalise signal weights to background weights
         scale_weight_sum(self.signal, self.backgd)
 
-        if self.system:
-            self.system.keep_columns(variables)
-            # Equalise system weights to background weights
-            scale_weight_sum(self.system, self.backgd)
-            print(self.no_system, self.system.cols)
-
         self.X = np.concatenate([self.signal.df.to_numpy(), self.backgd.df.to_numpy()])
         self.y = np.concatenate([self.signal.label_asarray, self.backgd.label_asarray])
+        self.z = np.concatenate([self.signal.auxlabel_asarray, self.backgd.auxlabel_asarray])
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
-
-        self.S = None if self.no_system else np.concatenate([self.signal.df.to_numpy(), self.system.df.to_numpy()])
-        self.t = None if self.no_system else np.concatenate([self.signal.auxlabel_asarray, self.system.auxlabel_asarray])
-        self.v = None if self.no_system else np.concatenate([self.signal.weights, self.system.weights])
 
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
         # print(self.describe(), self.signal.df.__getitem__)
@@ -55,44 +53,38 @@ class Train(object):
         self.nfold = nfold
         kfolder = KFold(n_splits = self.nfold, shuffle = True, random_state = seed)
 
-        self.X_train = {}
-        self.y_train = {}
-        self.w_train = {}
-        self.X_test = {}
-        self.y_test = {}
-        self.w_test = {}
-        self.S_train = {}
-        self.t_train = {}
-        self.v_train = {}
-        self.S_test = {}
-        self.t_test = {}
-        self.v_test = {}
+        self.X_train, self.X_test = {}, {}
+        self.y_train, self.y_test = {}, {}
+        self.z_train, self.z_test = {}, {}
+        self.w_train, self.w_test = {}, {}
         for i, (train_idx, test_idx) in enumerate(kfolder.split(self.X)):
             self.X_train[i], self.X_test[i] = self.X[train_idx], self.X[test_idx]
             self.y_train[i], self.y_test[i] = self.y[train_idx], self.y[test_idx]
+            self.z_train[i], self.z_test[i] = self.z[train_idx], self.z[test_idx]
             self.w_train[i], self.w_test[i] = self.w[train_idx], self.w[test_idx]
 
-        if not self.no_system:
-            for i, (train_idx, test_idx) in enumerate(kfolder.split(self.S)):
-                self.S_train[i], self.S_test[i] = self.S[train_idx], self.S[test_idx]
-                self.t_train[i], self.t_test[i] = self.t[train_idx], self.t[test_idx]
-                self.v_train[i], self.v_test[i] = self.v[train_idx], self.v[test_idx]
-
-    def train(self, epochs = 2, fold = 0):
+    def train(self, mode = 0, epochs = 2, fold = 0):
+        '''
+        mode = 0: one target mode => signal vs backgd
+               1: one target mode => signal vs syssig
+               2: two target mode => signal+syssig vs backgd and signal+backgd vs syssig
+        '''
         self.epochs = epochs
         self.fold = fold
-        # print('zhangr train', self.X_train[self.fold].shape, self.X_test[self.fold].shape, self.y_test[self.fold].shape, self.w_test[self.fold].shape)
-        # self.network.summary()
-        # print('zhang shape', self.y_test[self.fold].shape, self.t_test[self.fold].shape, self.w_test[self.fold].shape, self.v_test[self.fold].shape)
-        if self.no_system:
+        if mode == 0:
+            assert (self.no_syssig)
+            print(self.X_test[self.fold].shape, self.y_test[self.fold].shape, self.w_test[self.fold].shape)
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                     validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]),  epochs = self.epochs)
-        else:
-            print(self.X_train[self.fold])
-            print(self.S_train[self.fold])
-            return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.t_train[self.fold]], sample_weight = [self.w_train[self.fold], self.v_train[self.fold]], batch_size = 512)
-                    # validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.t_test[self.fold]], [self.w_test[self.fold], self.v_test[self.fold]]),  
-                    # epochs = self.epochs)
+        elif mode == 1:
+            assert (not self.no_syssig)
+            return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
+                    validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]),  epochs = self.epochs)
+
+        elif mode == 2:
+            assert (not self.no_syssig)
+            return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
+                    validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs)
 
     def evaluate(self, result):
         self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)

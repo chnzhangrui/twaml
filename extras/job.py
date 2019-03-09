@@ -58,10 +58,10 @@ class Job(object):
             'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DR_2j2b.h5',
             'signal_name': 'tW_DR',
             'signal_tree': 'wt_DR_nominal',
-            'no_system': False,
-            'system_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
-            'system_name': 'tW_DS',
-            'system_tree': 'wt_DS', 
+            'no_syssig': False,
+            'syssig_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
+            'syssig_name': 'tW_DS',
+            'syssig_tree': 'wt_DS', 
             'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/ttbar_2j2b.h5',
             'backgd_name': 'ttbar',
             'backgd_tree': 'tt_nominal',
@@ -74,24 +74,19 @@ class Job(object):
         self.advnet.build(input_dimension = self.trainer_Adv.shape, base_directory = self.output, lr = self.lr, momentum = self.momentum)
     
         for i in range(2):
-            print('zhangr', i)
             DeepNet.make_trainable(self.advnet.discriminator, False)
             DeepNet.make_trainable(self.advnet.generator, True)
-            print('zhang job generator')
             self.advnet.generator.summary()
-            print('zhang job discriminator')
             self.advnet.discriminator.summary()
-            print('zhang job adversary')
             self.advnet.adversary.summary()
             self.trainer_Adv.getNetwork(self.advnet.adversary)
-            self.result = self.trainer_Adv.train(epochs = self.epochs, fold = self.train_fold)
+            self.result = self.trainer_Adv.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 
             DeepNet.make_trainable(self.advnet.discriminator, True)
             DeepNet.make_trainable(self.advnet.generator, False)
-            print('zhang job adversary 2')
             self.advnet.adversary.summary()
             self.trainer_Adv.getNetwork(self.advnet.discriminator)
-            self.result = self.trainer_Adv.trainAdv(epochs = self.epochs, fold = self.train_fold)
+            self.result = self.trainer_Adv.train(mode = 1, epochs = self.epochs, fold = self.train_fold)
 
 
 
