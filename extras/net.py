@@ -10,7 +10,7 @@ class DeepNet(object):
     ''' Define a deep forward neural network '''
 
     def describe(self): return self.__class__.__name__
-    def __init__(self, build_dis = False, name = 'deepnet', hidden_Nlayer = 1, hidden_Nnode = 20, hidden_activation = 'relu', output_activation = 'sigmoid'):
+    def __init__(self, name, build_dis, hidden_Nlayer, hidden_Nnode, hidden_activation, output_activation = 'sigmoid'):
         self.name = name
         self.build_dis = build_dis
         self.hidden_Nlayer = hidden_Nlayer
@@ -26,7 +26,7 @@ class DeepNet(object):
         for layer in network.layers:
             layer.trainable = flag
 
-    def build(self, input_dimension = None, lr = 0.02, momentum = 0.8):
+    def build(self, input_dimension, lr, momentum):
         self.input_dimension = input_dimension
 
         # Input layer
@@ -67,7 +67,7 @@ class AdvNet(DeepNet):
         self.hidden_auxNlayer = hidden_auxNlayer
         self.hidden_auxNnode = hidden_auxNnode
 
-    def build(self, input_dimension = None, lam = 10, lr = 0.02, momentum = 0.8):
+    def build(self, input_dimension, lam, lr, momentum):
         self.input_dimension = input_dimension
 
         # Input layer

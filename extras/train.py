@@ -47,7 +47,7 @@ class Train(object):
     def getNetwork(self, net):
         self.network = net
 
-    def split(self, nfold = 2, seed = 666):
+    def split(self, nfold, seed = 666):
         ''' Split sample to training and test portions using KFold '''
  
         self.nfold = nfold
@@ -63,7 +63,7 @@ class Train(object):
             self.z_train[i], self.z_test[i] = self.z[train_idx], self.z[test_idx]
             self.w_train[i], self.w_test[i] = self.w[train_idx], self.w[test_idx]
 
-    def train(self, mode = 0, epochs = 2, fold = 0):
+    def train(self, mode, epochs, fold):
         '''
         mode = 0: one target mode => signal vs backgd
                1: one target mode => signal vs syssig
@@ -71,10 +71,7 @@ class Train(object):
         '''
         self.epochs = epochs
         self.fold = fold
-        self.network.summary()
         if mode == 0:
-            assert (self.no_syssig)
-            print(self.X_test[self.fold].shape, self.y_test[self.fold].shape, self.w_test[self.fold].shape)
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                     validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs)
         elif mode == 1:
@@ -161,3 +158,8 @@ class Train(object):
 
         plt.savefig(self.output_path + self.name + '_response' + '.pdf', format='pdf')
         plt.clf()
+
+        with open(self.output_path + self.name + '_ROC' + '.txt', 'w') as f:
+            f.write('Train AUC = %2.1f %%\n'% (train_AUC * 100))
+            f.write('Test  AUC = %2.1f %%\n'% (test_AUC * 100))
+

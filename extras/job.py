@@ -3,70 +3,82 @@ from train import Train
 
 class Job(object):
     def describe(self): return self.__class__.__name__
-    # def __init__(self, name = None, output = None, nfold = 3, train_fold = 0, epochs = 10, hidden_Nlayer = 4, hidden_Nnode = 20,
-    #         lr = 0.02, momentum = 0.8, activation = 'relu', para_train = {}):
-    def __init__(self, para_net = {}, para_train = {}):
-        self.para_train = para_train
+    def __init__(self, name, nfold, train_fold, epochs, hidden_Nlayer, hidden_Nnode, lr, momentum, output, activation, para_train={}):
+        self.nfold = nfold
+        self.train_fold = train_fold
+        self.epochs = epochs
+        self.hidden_Nlayer = hidden_Nlayer
+        self.hidden_Nnode = hidden_Nnode
+        self.lr = lr
+        self.momentum = momentum
+        self.activation = activation
+        self.output = 'l{}n{}_lr{}mom{}_{}_k{}_e{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.epochs) if output is None else output
+        self.name = self.output if name is None else name
 
-        self.nfold = para_net['nfold']
-        self.train_fold = para_net['train_fold']
-        self.epochs = para_net['epochs']
-        self.hidden_Nlayer = para_net['hidden_Nlayer']
-        self.hidden_Nnode = para_net['hidden_Nnode']
-        self.lr = para_net['lr']
-        self.momentum = para_net['momentum']
-        self.activation = 'relu' if 'activation' not in para_net else para_net['activation']
-        self.output = 'l{}n{}_lr{}_mom{}_{}_f{}_e{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.epochs) if 'output' not in para_net else para_net['output']
-        self.name = self.output if 'name' not in para_net else para_net['name']
+        self.para_train = para_train
         para_train['base_directory'] = self.output
 
     def run(self):
-        # ''' An instance of Train for data handling '''
 
+        ''' An instance of Train for data handling '''
         self.trainer = Train(**self.para_train)
         self.trainer.split(nfold = self.nfold)
 
         ''' An instance of DeepNet for network construction and pass it to Train '''
-        self.deepnet = DeepNet(hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
+        self.deepnet = DeepNet(name = self.name, build_dis = False, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
         self.deepnet.build(input_dimension = self.trainer.shape, lr = self.lr, momentum = self.momentum)
         self.deepnet.plot(base_directory = self.output)
         self.trainer.getNetwork(self.deepnet.generator)
         
         ''' Run the training '''
-        self.result = self.trainer.train(epochs = self.epochs, fold = self.train_fold)
+        self.result = self.trainer.train(mode = 0, epochs = self.epochs, fold = self.train_fold)
         self.trainer.evaluate(self.result)
         self.trainer.plotLoss(self.result)
         self.trainer.plotResults()
 
 
 class JobAdv(Job):
-    def __init__(self, hidden_auxNlayer = 1, hidden_auxNnode = 5, n_iteraction = 1, lam = 10, *args, **kwargs):
+    def __init__(self, preTrain_epochs, hidden_auxNlayer, hidden_auxNnode, n_iteraction, lam, *args, **kwargs):
         super(self.__class__, self).__init__(*args, **kwargs)
+        self.preTrain_epochs = preTrain_epochs
         self.hidden_auxNlayer = hidden_auxNlayer
         self.hidden_auxNnode = hidden_auxNnode
         self.n_iteraction = n_iteraction
         self.lam = lam
+        self.output = '{}__E{}_L{}N{}_it{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.n_iteraction, self.lam)
 
     def run(self):
 
+        ''' An instance of Train for data handling '''
         self.trainer = Train(**self.para_train)
-        self.trainer.split(nfold = 3)
+        self.trainer.split(nfold = self.nfold)
 
         ''' An instance of AdvNet for network construction and pass it to Train '''
-        self.advnet = AdvNet(name = 'AdvNN', build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode,
+        self.advnet = AdvNet(name = self.name, build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode,
             hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode)
         self.advnet.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, momentum = self.momentum)
         self.advnet.plot(base_directory = self.output)
     
-        ''' Run the training '''
+        ''' pre-training '''
+        AdvNet.make_trainable(self.advnet.generator, True)
+        AdvNet.make_trainable(self.advnet.discriminator, False)
+        self.trainer.getNetwork(self.advnet.generator)
+        self.result = self.trainer.train(mode = 0, epochs = self.preTrain_epochs, fold = self.train_fold)
+
+        AdvNet.make_trainable(self.advnet.generator, False)
+        AdvNet.make_trainable(self.advnet.discriminator, True)
+        self.trainer.getNetwork(self.advnet.discriminator)
+        self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
+
+        ''' Iterative training '''
         for i in range(self.n_iteraction):
-            AdvNet.make_trainable(self.advnet.discriminator, False)
             AdvNet.make_trainable(self.advnet.generator, True)
+            AdvNet.make_trainable(self.advnet.discriminator, False)
             self.trainer.getNetwork(self.advnet.adversary)
             self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 
-            AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, False)
+            AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.getNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 1, epochs = self.epochs, fold = self.train_fold)
 
@@ -122,6 +134,7 @@ para_train_sim = {'name': '2j2b',
     }
 
 para_net_sim = {
+    'name': 'simple',
     'nfold': 3,
     'train_fold': 0,
     'epochs': 500,
@@ -129,10 +142,12 @@ para_net_sim = {
     'hidden_Nnode': 10,
     'lr': 0.01,
     'momentum': 0.8,
+    'output': None,
+    'activation': 'elu',
     }
 
-# job = Job(para_net = para_net_sim, para_train = para_train_sim)
-# job.run()
+job = Job(**para_net_sim, para_train = para_train_sim)
+job.run()
 
 para_train_Adv = {**para_train_sim,
     'name': 'NP',
@@ -143,11 +158,13 @@ para_train_Adv = {**para_train_sim,
     }
 
 para_net_Adv = {**para_net_sim,
+    'name': 'ANN',
+    'epochs': 2,
     'hidden_auxNlayer': 2,
     'hidden_auxNnode': 5,
-    # 'pre_epochs': 20,
-    'n_iteraction': 2,
+    'preTrain_epochs': 20,
+    'n_iteraction': 500,
     'lam': 10,
 }
-job = JobAdv(para_net = para_net_Adv, para_train = para_train_Adv)
+job = JobAdv(**para_net_Adv, para_train = para_train_Adv)
 job.run()
