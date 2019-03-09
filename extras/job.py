@@ -138,33 +138,38 @@ para_net_sim = {
     'nfold': 3,
     'train_fold': 0,
     'epochs': 500,
-    'hidden_Nlayer': 3,
-    'hidden_Nnode': 10,
-    'lr': 0.01,
+    'hidden_Nlayer': 10,
+    'hidden_Nnode': 100,
+    'lr': 0.03,
     'momentum': 0.8,
     'output': None,
     'activation': 'elu',
     }
 
-job = Job(**para_net_sim, para_train = para_train_sim)
-job.run()
+for hidden_Nlayer in [10, 20, 5]:
+    for hidden_Nnode in [30, 50, 100]:
+        for lr in [0.03, 0.05]:
+            for activation in ['elu', 'relu']:
+                para_net_sim['hidden_Nlayer'], para_net_sim['hidden_Nnode'], para_net_sim['lr'], para_net_sim['activation'] = hidden_Nlayer, hidden_Nnode, lr, activation
+                job = Job(**para_net_sim, para_train = para_train_sim)
+                job.run()
 
-para_train_Adv = {**para_train_sim,
-    'name': 'NP',
-    'no_syssig': False,
-    'syssig_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
-    'syssig_name': 'tW_DS',
-    'syssig_tree': 'wt_DS',
-    }
+# para_train_Adv = {**para_train_sim,
+#     'name': 'NP',
+#     'no_syssig': False,
+#     'syssig_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
+#     'syssig_name': 'tW_DS',
+#     'syssig_tree': 'wt_DS',
+#     }
 
-para_net_Adv = {**para_net_sim,
-    'name': 'ANN',
-    'epochs': 2,
-    'hidden_auxNlayer': 2,
-    'hidden_auxNnode': 5,
-    'preTrain_epochs': 20,
-    'n_iteraction': 500,
-    'lam': 10,
-}
-job = JobAdv(**para_net_Adv, para_train = para_train_Adv)
-job.run()
+# para_net_Adv = {**para_net_sim,
+#     'name': 'ANN',
+#     'epochs': 2,
+#     'hidden_auxNlayer': 2,
+#     'hidden_auxNnode': 5,
+#     'preTrain_epochs': 20,
+#     'n_iteraction': 500,
+#     'lam': 10,
+# }
+# job = JobAdv(**para_net_Adv, para_train = para_train_Adv)
+# job.run()
