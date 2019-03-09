@@ -22,7 +22,7 @@ class Train(object):
         self.no_syssig = no_syssig
         self.syssig_latex = None if self.no_syssig else syssig_latex
 
-        if self.no_syssig:
+        if not self.no_syssig:
             self.syssig = dataset.from_pytables(syssig_h5, syssig_name, tree_name = syssig_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.syssig_label)
             self.syssig.keep_columns(variables)
 
@@ -38,7 +38,7 @@ class Train(object):
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
 
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
-        # print(self.describe(), self.signal.df.__getitem__)
+        print(self.describe(), self.signal.df.__getitem__)
 
     @property
     def shape(self):
