@@ -158,6 +158,19 @@ def test_label():
     np.testing.assert_array_equal(la, la_raw)
 
 
+def test_auxlabel():
+    ds2 = dataset.from_root(
+        ["tests/data/test_file.root"], name="ds2", branches=branches
+    )
+    assert ds2.auxlabel is None
+    assert ds2.auxlabel_asarray is None
+    ds2.auxlabel = 3
+    assert ds2.auxlabel == 3
+    la = ds2.auxlabel_asarray
+    la_raw = np.ones_like(ds2.weights, dtype=np.int64) * 3
+    np.testing.assert_array_equal(la, la_raw)
+
+
 def test_save_and_read():
     ds.to_pytables("outfile.h5")
     new_ds = dataset.from_pytables("outfile.h5", ds.name)

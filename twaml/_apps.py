@@ -6,9 +6,11 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from twaml.data import dataset
+import logging
 
 
 def root2pytables():
+    log = logging.getLogger("root2pytables")
     """command line application which converts a set of ROOT files into a
     pytables hdf5 file via the ``twaml.data.root_dataset`` function
     and the ``to_pytables`` member function of the
@@ -94,6 +96,13 @@ def root2pytables():
     )
 
     args = parser.parse_args()
+
+    log.info(
+        "Converting the following ROOT files to pytables ({}):".format(args.out_file)
+    )
+    for f in args.input_files:
+        log.info("- {}".format(f))
+
     sel_dict = None
     if args.true_branches is not None:
         sel_dict = {bn: (np.equal, True) for bn in args.true_branches}
@@ -110,4 +119,5 @@ def root2pytables():
         executor=xtor,
     )
     ds.to_pytables(args.out_file)
+
     return 0
