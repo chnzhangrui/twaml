@@ -4,13 +4,13 @@ from train import Train
 class Job(object):
     def describe(self): return self.__class__.__name__
     def __init__(self, name, nfold, train_fold, epochs, hidden_Nlayer, hidden_Nnode, lr, momentum, output, activation, para_train={}):
-        self.nfold = nfold
-        self.train_fold = train_fold
-        self.epochs = epochs
-        self.hidden_Nlayer = hidden_Nlayer
-        self.hidden_Nnode = hidden_Nnode
-        self.lr = lr
-        self.momentum = momentum
+        self.nfold = int(nfold)
+        self.train_fold = int(train_fold)
+        self.epochs = int(epochs)
+        self.hidden_Nlayer = int(hidden_Nlayer)
+        self.hidden_Nnode = int(hidden_Nnode)
+        self.lr = float(lr)
+        self.momentum = float(momentum)
         self.activation = activation
         self.output = 'l{}n{}_lr{}mom{}_{}_k{}_e{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.epochs) if output is None else output
         self.name = self.output if name is None else name
@@ -121,55 +121,3 @@ class JobAdv(Job):
 # job = Job(nfold = 3, train_fold = 0, epochs = 500, hidden_Nlayer = 5, hidden_Nnode = 100, lr = 0.03, momentum = 0.8)
 # job.run()
 
-
-para_train_sim = {'name': '2j2b',
-    'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DR_2j2b.h5',
-    'signal_name': 'tW_DR',
-    'signal_tree': 'wt_DR_nominal',
-    'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/ttbar_2j2b.h5',
-    'backgd_name': 'ttbar',
-    'backgd_tree': 'tt_nominal',
-    'weight_name': 'weight_nominal',
-    'variables': ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2'],
-    }
-
-para_net_sim = {
-    'name': 'simple',
-    'nfold': 3,
-    'train_fold': 0,
-    'epochs': 500,
-    'hidden_Nlayer': 10,
-    'hidden_Nnode': 100,
-    'lr': 0.03,
-    'momentum': 0.8,
-    'output': None,
-    'activation': 'elu',
-    }
-
-for hidden_Nlayer in [10, 20, 5]:
-    for hidden_Nnode in [30, 50, 100]:
-        for lr in [0.03, 0.05]:
-            for activation in ['elu', 'relu']:
-                para_net_sim['hidden_Nlayer'], para_net_sim['hidden_Nnode'], para_net_sim['lr'], para_net_sim['activation'] = hidden_Nlayer, hidden_Nnode, lr, activation
-                job = Job(**para_net_sim, para_train = para_train_sim)
-                job.run()
-
-# para_train_Adv = {**para_train_sim,
-#     'name': 'NP',
-#     'no_syssig': False,
-#     'syssig_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
-#     'syssig_name': 'tW_DS',
-#     'syssig_tree': 'wt_DS',
-#     }
-
-# para_net_Adv = {**para_net_sim,
-#     'name': 'ANN',
-#     'epochs': 2,
-#     'hidden_auxNlayer': 2,
-#     'hidden_auxNnode': 5,
-#     'preTrain_epochs': 20,
-#     'n_iteraction': 500,
-#     'lam': 10,
-# }
-# job = JobAdv(**para_net_Adv, para_train = para_train_Adv)
-# job.run()

@@ -48,7 +48,7 @@ class DeepNet(object):
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
-        print('\n\n==> \033[92mNetwork 1\033[0m')
+        print('\n\n==> \033[92mNetwork' + (' 1' if self.build_dis else '') + '\033[0m')
         self.generator.summary()
         plot_model(self.generator, to_file = self.output_path + self.name + '_generator.png')
         if self.build_dis:
