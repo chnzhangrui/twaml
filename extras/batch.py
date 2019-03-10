@@ -2,8 +2,15 @@ from job import Job, JobAdv
 import itertools    
 from itertools import chain
 
+def update_dict(orig_dict, new_dict):
+    for k, v in new_dict.items():
+        if k in orig_dict:
+            orig_dict[k] = v
+
 class Batch(object):
-    def __init__(self, base_directory, inputs):
+    def __init__(self, jobname, base_directory, inputs):
+        self.jobname = jobname
+
         self.base_directory = base_directory + '/'
         self.para_train_sim = {'name': '2j2b',
             'signal_h5': 'tW_DR_2j2b.h5',
@@ -15,7 +22,7 @@ class Batch(object):
             'weight_name': 'weight_nominal',
             'variables': ['mass_lep1jet2'],
             }
-        self.para_train_sim.update(inputs)
+        update_dict(self.para_train_sim, inputs)
 
         self.para_net_sim = {
             'name': 'simple',
@@ -29,9 +36,30 @@ class Batch(object):
             'output': None,
             'activation': 'elu',
             }
+        update_dict(self.para_net_sim, inputs)
 
-        self.wrappe = self.base_directory + 'wrap.sh'
-        self.htcjdl = self.base_directory + 'htc.jdl'
+        self.para_train_Adv = {**self.para_train_sim,
+            'name': 'NP',
+            'no_syssig': False,
+            'syssig_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
+            'syssig_name': 'tW_DS',
+            'syssig_tree': 'wt_DS',
+            }
+        update_dict(self.para_train_Adv, inputs)
+
+        self.para_net_Adv = {**self.para_net_sim,
+            'name': 'ANN',
+            'epochs': 2,
+            'hidden_auxNlayer': 2,
+            'hidden_auxNnode': 5,
+            'preTrain_epochs': 20,
+            'n_iteraction': 500,
+            'lam': 10,
+        }
+        update_dict(self.para_net_Adv, inputs)
+
+        self.wrappe = self.base_directory + self.jobname + '_wrap.sh'
+        self.htcjdl = self.base_directory + self.jobname + '_htc.jdl'
 
         self.req_memory = 4
         self.req_cores = 4
@@ -69,9 +97,7 @@ class Batch(object):
         """.split('\n')[1:]).format(
                     arguments = ' '.join(list(chain(*setting.items()))))
 
-        print('zhang', local_run, self.htcjdl)
         if not local_run:
-            print('zhang write')
             with open(self.htcjdl, 'w+') as f:
                 f.write(prefix_jdl())
 
@@ -86,9 +112,13 @@ class Batch(object):
             if not local_run:
                 with open(self.htcjdl, 'a+') as f:
                     f.write(jobarr_jdl(setting))
+            elif self.jobname == 'ANN':
+                # If local run adversarial neural network
+                update_dict(self.para_net_Adv, setting)
+                job = JobAdv(**self.para_net_Adv, para_train = self.para_train_Adv)
+                job.run()
             else:
-                # If local run
-                self.para_net_sim.update(setting)
+                update_dict(self.para_net_sim, setting)
                 job = Job(**self.para_net_sim, para_train = self.para_train_sim)
                 job.run()
 
@@ -100,8 +130,9 @@ class Batch(object):
             return '\n'.join(l[8:] for l in """
         #!/bin/bash
 
-        python ../twaml/extras/submit.py _run $*
-            """.split('\n')[1:]).format('')
+        python ../twaml/extras/submit.py _run {mode} $*
+            """.split('\n')[1:]).format(
+                mode = self.jobname)
 
         with open(self.wrappe, 'w+') as f:
             f.write(wrapper())
@@ -109,6 +140,11 @@ class Batch(object):
 
     def _run(self, param):
         setting = {param[i]: param[i+1] for i in range(0, len(param), 2)}
-        self.para_net_sim.update(setting)
-        job = Job(**self.para_net_sim, para_train = self.para_train_sim)
-        job.run()
+        if self.jobname == 'ANN':
+            update_dict(self.para_net_Adv, setting)
+            job = JobAdv(**self.para_net_Adv, para_train = self.para_train_Adv)
+            job.run()
+        else:
+            update_dict(self.para_net_sim, setting)
+            job = Job(**self.para_net_sim, para_train = self.para_train_sim)
+            job.run()

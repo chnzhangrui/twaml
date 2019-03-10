@@ -7,7 +7,7 @@ def parse_options(args):
     parser = argparse.ArgumentParser(description='Neural network training', prog='submit')
     
     subcommands = parser.add_subparsers(dest='command')
-    
+
     _run = subcommands.add_parser('_run', help='Run training with current setting')
     _run.add_argument('_run', nargs='*')
 
@@ -25,9 +25,9 @@ if __name__ == '__main__':
         'variables': ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2'],
     }
 
-    batch = Batch(base_directory, inputs)
-
-    args = parse_options(sys.argv[1:])
+    jobname = sys.argv[1]
+    batch = Batch(jobname, base_directory, inputs)
+    args = parse_options(sys.argv[2:])
 
     ''' Grid search '''
     job_array = {
