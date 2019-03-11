@@ -29,7 +29,7 @@ class Job(object):
         self.deepnet = DeepNet(name = self.name, build_dis = False, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
         self.deepnet.build(input_dimension = self.trainer.shape, lr = self.lr, momentum = self.momentum)
         self.deepnet.plot(base_directory = self.output)
-        self.trainer.getNetwork(self.deepnet.generator)
+        self.trainer.setNetwork(self.deepnet.generator)
         
         ''' Run the training '''
         self.result = self.trainer.train(mode = 0, epochs = self.epochs, fold = self.train_fold)
@@ -73,12 +73,12 @@ class JobAdv(Job):
         if self.preTrain_epochs != 0:
             AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
-            self.trainer.getNetwork(self.advnet.generator)
+            self.trainer.setNetwork(self.advnet.generator)
             self.result = self.trainer.train(mode = 0, epochs = self.preTrain_epochs, fold = self.train_fold)
 
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
-            self.trainer.getNetwork(self.advnet.discriminator)
+            self.trainer.setNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
 
         self.output_path = '/'.join([self.output, self.describe()]) + '/'
@@ -89,7 +89,7 @@ class JobAdv(Job):
 
             AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
-            self.trainer.getNetwork(self.advnet.adversary)
+            self.trainer.setNetwork(self.advnet.adversary)
             self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 
             self.trainer.plotIteration(i)
@@ -98,12 +98,10 @@ class JobAdv(Job):
 
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
-            self.trainer.getNetwork(self.advnet.discriminator)
+            self.trainer.setNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 1, epochs = self.epochs, fold = self.train_fold)
 
-        self.trainer.getNetwork(self.advnet.adversary)
+        self.trainer.setNetwork(self.advnet.adversary)
         self.trainer.saveLoss()
-        print('zhang', self.name)
-        self.trainer.evaluate()
-        self.trainer.plotLoss(self.result)
+        self.trainer.setNetwork(self.advnet.generator)
         self.trainer.plotResults()

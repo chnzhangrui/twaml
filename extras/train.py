@@ -49,7 +49,7 @@ class Train(object):
     def shape(self):
         return self.signal.shape[1]
 
-    def getNetwork(self, net):
+    def setNetwork(self, net):
         self.network = net
 
     def split(self, nfold, seed = 666):

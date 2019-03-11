@@ -1,6 +1,7 @@
 from job import Job, JobAdv
 import itertools    
 from itertools import chain
+import os
 
 def update_dict(orig_dict, new_dict):
     for k, v in new_dict.items():
@@ -130,11 +131,12 @@ class Batch(object):
             return '\n'.join(l[8:] for l in """
         #!/bin/bash
         dest={base_directory}
-        python $dest/../twaml/extras/submit.py {mode} _run $*
+        python {program}/submit.py {mode} _run $*
         \cp -r job__* $dest/
         unset dest
         """.split('\n')[1:]).format(
                 base_directory = self.base_directory,
+                program = os.path.dirname(os.path.abspath(__file__)),
                 mode = self.jobname)
 
         with open(self.wrappe, 'w+') as f:
