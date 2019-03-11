@@ -90,12 +90,11 @@ class Train(object):
                     validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs)
 
     def evaluate(self):
-        print('Evaluating')
+        print('Evaluating ...', self.no_syssig, self.name)
         if self.no_syssig:
             self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
             self.network.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
         else:
-            print('zhang', self.no_syssig, self.network.name)
             loss_train = self.network.evaluate(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], verbose=0)
             loss_test = self.network.evaluate(self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], sample_weight = [self.w_test[self.fold], self.w_test[self.fold]], verbose=0)
             return loss_train, loss_test
@@ -182,12 +181,12 @@ class Train(object):
         self.losses_train['L_dis'].append(-loss_train[2][None][0])
         self.losses_train['L_diff'].append(loss_train[0][None][0])
 
-        # self.losses_test['L_gen'].append(1)
-        # self.losses_test['L_dis'].append(2)
-        # self.losses_test['L_diff'].append(3)
-        # self.losses_train['L_gen'].append(4)
-        # self.losses_train['L_dis'].append(5)
-        # self.losses_train['L_diff'].append(6)
+        # self.losses_test['L_gen'].append(0.000001)
+        # self.losses_test['L_dis'].append(0.000002)
+        # self.losses_test['L_diff'].append(0.000003)
+        # self.losses_train['L_gen'].append(0.00004)
+        # self.losses_train['L_dis'].append(0.00005)
+        # self.losses_train['L_diff'].append(0.00006)
 
         def plot_twolosses():
             idxes = ['L_gen', 'L_dis', 'L_diff']
@@ -202,9 +201,17 @@ class Train(object):
                 plt.ylabel(latex[idx], fontsize='large')
                 plt.grid()
 
-            plt.subplots_adjust(hspace = 0.4)
+            plt.xlabel('Number of iterations', horizontalalignment='left', fontsize='large')
+            plt.subplots_adjust(left=0.18, right=0.95, top=0.95, hspace = 0.4)
             plt.savefig(self.output_path + self.name + '_iter.pdf', format = 'pdf')
             plt.clf()
 
-        if not i % 5:
+        if not it % 2:
             plot_twolosses()
+
+    def saveLoss(self):
+        import json
+        with open(self.output_path + self.name + '_iter.json', 'w') as fp:
+            print('Saved', fp.name, 'to disk')
+            json.dump(self.losses_test, fp)
+            json.dump(self.losses_train, fp)

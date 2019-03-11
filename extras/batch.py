@@ -131,7 +131,8 @@ class Batch(object):
         #!/bin/bash
         dest={base_directory}
         python $dest/../twaml/extras/submit.py {mode} _run $*
-        cp -r job__* $dest/
+        \cp -r job__* $dest/
+        unset dest
         """.split('\n')[1:]).format(
                 base_directory = self.base_directory,
                 mode = self.jobname)

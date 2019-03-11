@@ -33,7 +33,7 @@ class Job(object):
         
         ''' Run the training '''
         self.result = self.trainer.train(mode = 0, epochs = self.epochs, fold = self.train_fold)
-        self.trainer.evaluate(self.result)
+        self.trainer.evaluate()
         self.trainer.plotLoss(self.result)
         self.trainer.plotResults()
 
@@ -101,6 +101,9 @@ class JobAdv(Job):
             self.trainer.getNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 1, epochs = self.epochs, fold = self.train_fold)
 
-        self.trainer.evaluate(self.result)
+        self.trainer.getNetwork(self.advnet.adversary)
+        self.trainer.saveLoss()
+        print('zhang', self.name)
+        self.trainer.evaluate()
         self.trainer.plotLoss(self.result)
         self.trainer.plotResults()
