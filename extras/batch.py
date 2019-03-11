@@ -129,9 +129,11 @@ class Batch(object):
 
             return '\n'.join(l[8:] for l in """
         #!/bin/bash
-
-        python ../twaml/extras/submit.py _run {mode} $*
-            """.split('\n')[1:]).format(
+        dest={base_directory}
+        python $dest/../twaml/extras/submit.py {mode} _run $*
+        cp -r * $dest/
+        """.split('\n')[1:]).format(
+                base_directory = self.base_directory,
                 mode = self.jobname)
 
         with open(self.wrappe, 'w+') as f:
