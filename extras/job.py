@@ -13,7 +13,7 @@ class Job(object):
         self.lr = float(lr)
         self.momentum = float(momentum)
         self.activation = activation
-        self.output = 'l{}n{}_lr{}mom{}_{}_k{}_e{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.epochs) if output is None else output
+        self.output = 'job__l{}n{}_lr{}mom{}_{}_k{}_e{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.epochs) if output is None else output
         self.name = self.output if name is None else name
 
         self.para_train = para_train
@@ -92,10 +92,9 @@ class JobAdv(Job):
             self.trainer.getNetwork(self.advnet.adversary)
             self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 
+            self.trainer.plotIteration(i)
             if not i % 5:
-                self.trainer.plotIteration(i)
                 self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
-
 
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)

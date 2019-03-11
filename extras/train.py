@@ -174,20 +174,20 @@ class Train(object):
         if self.no_syssig:
             return
 
-        # loss_train, loss_test = self.evaluate()
-        # self.losses_test['L_gen'].append(loss_test[1][None][0])
-        # self.losses_test['L_dis'].append(-loss_test[2][None][0])
-        # self.losses_test['L_diff'].append(loss_test[0][None][0])
-        # self.losses_train['L_gen'].append(loss_train[1][None][0])
-        # self.losses_train['L_dis'].append(-loss_train[2][None][0])
-        # self.losses_train['L_diff'].append(loss_train[0][None][0])
+        loss_train, loss_test = self.evaluate()
+        self.losses_test['L_gen'].append(loss_test[1][None][0])
+        self.losses_test['L_dis'].append(-loss_test[2][None][0])
+        self.losses_test['L_diff'].append(loss_test[0][None][0])
+        self.losses_train['L_gen'].append(loss_train[1][None][0])
+        self.losses_train['L_dis'].append(-loss_train[2][None][0])
+        self.losses_train['L_diff'].append(loss_train[0][None][0])
 
-        self.losses_test['L_gen'].append(1)
-        self.losses_test['L_dis'].append(2)
-        self.losses_test['L_diff'].append(3)
-        self.losses_train['L_gen'].append(4)
-        self.losses_train['L_dis'].append(5)
-        self.losses_train['L_diff'].append(6)
+        # self.losses_test['L_gen'].append(1)
+        # self.losses_test['L_dis'].append(2)
+        # self.losses_test['L_diff'].append(3)
+        # self.losses_train['L_gen'].append(4)
+        # self.losses_train['L_dis'].append(5)
+        # self.losses_train['L_diff'].append(6)
 
         def plot_twolosses():
             idxes = ['L_gen', 'L_dis', 'L_diff']
@@ -206,4 +206,5 @@ class Train(object):
             plt.savefig(self.output_path + self.name + '_iter.pdf', format = 'pdf')
             plt.clf()
 
-        plot_twolosses()
+        if not i % 5:
+            plot_twolosses()
