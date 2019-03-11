@@ -62,41 +62,48 @@ class Batch(object):
         self.wrappe = self.base_directory + self.jobname + '_wrap.sh'
         self.htcjdl = self.base_directory + self.jobname + '_htc.jdl'
 
-        self.req_memory = 4
-        self.req_cores = 4
+        self.req_memory = 6
+        self.req_cores = 6
 
     def create_jdl(self, job_array, local_run = False):
-
+        log = 'log'
+        if not os.path.exists('/'.join([self.base_directory, log])):
+            os.makedirs('/'.join([self.base_directory, log]))
         def prefix_jdl():
                 ''' Steering file for HTCondor (Prefix). '''
 
-                return '\n'.join(l[8:] for l in """
-        Executable              = {wrappe}
-        Universe                = vanilla
-        Transfer_executable     = True
-        Request_memory          = {req_memory}
-        Request_cpus            = {req_cores}
-        # Disk space in kiB, if no unit is specified!
-        Request_disk            = 2 GB
-        # Additional job requirements (note the plus signs)
-        # Choose OS (options: "SL6", "CentOS7", "Ubuntu1804")
-        +ContainerOS            = "SL6"
-        """.split('\n')[1:]).format(
-                    wrappe = self.wrappe,
-                    req_memory = '{} GB'.format(self.req_memory),
-                    req_cores = str(self.req_cores))
+                return '\n'.join(l[20:] for l in """
+                    Executable              = {wrappe}
+                    Universe                = vanilla
+                    Transfer_executable     = True
+                    Request_memory          = {req_memory}
+                    Request_cpus            = {req_cores}
+                    # Disk space in kiB, if no unit is specified!
+                    Request_disk            = 4 GB
+                    # Specify job input and output
+                    Error                   = {log}/err.$(ClusterId).$(Process)
+                    Output                  = {log}/out.$(ClusterId).$(Process)
+                    Log                     = {log}/log.$(ClusterId).$(Process)
+                    # Additional job requirements (note the plus signs)
+                    # Choose OS (options: "SL6", "CentOS7", "Ubuntu1804")
+                    +ContainerOS            = "SL6"
+                    """.split('\n')[1:]).format(
+                        wrappe = self.wrappe,
+                        req_memory = '{} GB'.format(self.req_memory),
+                        req_cores = str(self.req_cores),
+                        log = log)
 
 
         def jobarr_jdl(setting):
             ''' Steering file for HTCondor (Job array). '''
 
-            return '\n'.join(l[8:] for l in """
-            
-        # Submit 1 job
-        arguments               = {arguments}
-        Queue 1
-        """.split('\n')[1:]).format(
-                    arguments = ' '.join(list(chain(*setting.items()))))
+            return '\n'.join(l[20:] for l in """
+                    
+                    # Submit 1 job
+                    arguments               = {arguments}
+                    Queue 1
+                    """.split('\n')[1:]).format(
+                        arguments = ' '.join(list(chain(*setting.items()))))
 
         if not local_run:
             with open(self.htcjdl, 'w+') as f:
@@ -130,6 +137,7 @@ class Batch(object):
 
             return '\n'.join(l[8:] for l in """
         #!/bin/bash
+        source /cephfs/user/rzhang/Wtr21/setup_twaml.sh
         dest={base_directory}
         python {program}/submit.py {mode} _run $*
         \cp -r job__* $dest/

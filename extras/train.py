@@ -3,6 +3,8 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
 from twaml.data import dataset
 from twaml.data import scale_weight_sum
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 
