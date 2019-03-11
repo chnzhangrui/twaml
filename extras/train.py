@@ -4,6 +4,7 @@ from sklearn.metrics import roc_auc_score
 from twaml.data import dataset
 from twaml.data import scale_weight_sum
 import matplotlib.pyplot as plt
+import os
 
 class Train(object):
     def describe(self): return self.__class__.__name__
@@ -21,6 +22,8 @@ class Train(object):
         self.backgd.keep_columns(variables)
         self.no_syssig = no_syssig
         self.syssig_latex = None if self.no_syssig else syssig_latex
+        self.losses_test = {'L_gen': [], 'L_dis': [], 'L_diff': []}
+        self.losses_train = {'L_gen': [], 'L_dis': [], 'L_diff': []}
 
         if not self.no_syssig:
             self.syssig = dataset.from_pytables(syssig_h5, syssig_name, tree_name = syssig_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.syssig_label)
@@ -38,6 +41,8 @@ class Train(object):
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
 
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
         print(self.describe(), self.signal.df.__getitem__)
 
     @property
@@ -84,9 +89,16 @@ class Train(object):
             return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
                     validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs)
 
-    def evaluate(self, result):
-        self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
-        self.network.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
+    def evaluate(self):
+        print('Evaluating')
+        if self.no_syssig:
+            self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
+            self.network.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
+        else:
+            print('zhang', self.no_syssig, self.network.name)
+            loss_train = self.network.evaluate(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], verbose=0)
+            loss_test = self.network.evaluate(self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], sample_weight = [self.w_test[self.fold], self.w_test[self.fold]], verbose=0)
+            return loss_train, loss_test
 
     def plotLoss(self, result):
         ''' Plot loss functions '''
@@ -94,9 +106,6 @@ class Train(object):
             print('Only', self.epochs, 'epochs, no need for plotLoss.')
             return
 
-        import os
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
         # Summarise history for accuracy
         plt.plot(result.history['acc'])
         plt.plot(result.history['val_acc'])
@@ -118,9 +127,6 @@ class Train(object):
 
     def plotResults(self, xlo = 0., xhi = 1, nbin = 20):
         from sklearn.metrics import roc_curve, auc
-        import os
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
 
         train_predict = self.network.predict(self.X_train[self.fold])
         test_predict = self.network.predict(self.X_test[self.fold])
@@ -149,8 +155,8 @@ class Train(object):
 
             plt.hist(train_predict[self.y_train[self.fold] == self.signal_label], range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Training ' + self.signal_latex)
             plt.hist(train_predict[self.y_train[self.fold] == self.backgd_label], range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Training ' + self.backgd_latex)
-            plt.hist(test_predict[self.y_test[self.fold] == self.signal_label],   range = [xlo, xhi], bins = nbin, histtype = "step", density = density, label='Test ' + self.signal_latex, linestyle = 'dashed')
-            plt.hist(test_predict[self.y_test[self.fold] == self.backgd_label],   range = [xlo, xhi], bins = nbin, histtype = "step", density = density, label='Test ' + self.backgd_latex, linestyle = 'dashed')
+            plt.hist(test_predict[self.y_test[self.fold] == self.signal_label],   range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Test ' + self.signal_latex, linestyle = 'dashed')
+            plt.hist(test_predict[self.y_test[self.fold] == self.backgd_label],   range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Test ' + self.backgd_latex, linestyle = 'dashed')
             plt.ylim(0, plt.gca().get_ylim()[1] * 1.5)
             plt.legend()
             plt.xlabel('Response', horizontalalignment = 'left', fontsize = 'large')
@@ -163,3 +169,41 @@ class Train(object):
             f.write('Train AUC = %2.1f %%\n'% (train_AUC * 100))
             f.write('Test  AUC = %2.1f %%\n'% (test_AUC * 100))
 
+
+    def plotIteration(self, it):
+        if self.no_syssig:
+            return
+
+        # loss_train, loss_test = self.evaluate()
+        # self.losses_test['L_gen'].append(loss_test[1][None][0])
+        # self.losses_test['L_dis'].append(-loss_test[2][None][0])
+        # self.losses_test['L_diff'].append(loss_test[0][None][0])
+        # self.losses_train['L_gen'].append(loss_train[1][None][0])
+        # self.losses_train['L_dis'].append(-loss_train[2][None][0])
+        # self.losses_train['L_diff'].append(loss_train[0][None][0])
+
+        self.losses_test['L_gen'].append(1)
+        self.losses_test['L_dis'].append(2)
+        self.losses_test['L_diff'].append(3)
+        self.losses_train['L_gen'].append(4)
+        self.losses_train['L_dis'].append(5)
+        self.losses_train['L_diff'].append(6)
+
+        def plot_twolosses():
+            idxes = ['L_gen', 'L_dis', 'L_diff']
+            latex = [r'$L_{\mathrm{gen}}$', r'$\lambda \cdot L_{\mathrm{dis}}$', r'$L_{\mathrm{gen}} - \lambda \cdot L_{\mathrm{dis}}$']
+            for idx in range(len(self.losses_test)):
+                ax = plt.subplot(3, 1, idx + 1)
+
+                plt.plot(np.arange(len(self.losses_train[idxes[idx]])), self.losses_test[idxes[idx]], '--', label = r'Test ')
+                plt.plot(np.arange(len(self.losses_train[idxes[idx]])), self.losses_train[idxes[idx]], '', label = r'Train')
+                
+                plt.legend(loc='upper right')
+                plt.ylabel(latex[idx], fontsize='large')
+                plt.grid()
+
+            plt.subplots_adjust(hspace = 0.4)
+            plt.savefig(self.output_path + self.name + '_iter.pdf', format = 'pdf')
+            plt.clf()
+
+        plot_twolosses()

@@ -5,6 +5,7 @@ from keras.optimizers import SGD
 from keras.utils.vis_utils import plot_model
 # from keras.layers.advanced_activations import LeakyReLU
 import keras.backend as K
+import os
 
 class DeepNet(object):
     ''' Define a deep forward neural network '''
@@ -44,7 +45,6 @@ class DeepNet(object):
         self.generator.compile(loss = 'binary_crossentropy', optimizer = sgd, metrics=['accuracy'])
 
     def plot(self, base_directory = './'):
-        import os
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
