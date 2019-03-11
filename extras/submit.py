@@ -20,8 +20,9 @@ if __name__ == '__main__':
     base_directory = os.getcwd()
     
     inputs = {'name': '2j2b',
-        'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DR_2j2b.h5',
-        'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/ttbar_2j2b.h5',
+        'signal_h5': '/cephfs/user/rzhang/Wtr21/run/v28/h5files/tW_DR_2j2b.h5',
+        'backgd_h5': '/cephfs/user/rzhang/Wtr21/run/v28/h5files/ttbar_2j2b.h5',
+        'syssig_h5': '/cephfs/user/rzhang/Wtr21/run/v28/h5files/tW_DS_2j2b.h5',
         'variables': ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2'],
     }
 
