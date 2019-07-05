@@ -1,2 +1,3 @@
-m2r
 sphinxcontrib-programoutput
+sphinx-autodoc-typehints
+autodocsumm

@@ -6,42 +6,30 @@ A module providing some utlities
 
 Attributes
 ----------
-SD_1J1B : Dict
-  selection dictionary for 1j1b region
-SD_2J1B : Dict
-  selection dictionary for 2j1b region
-SD_2J2B : Dict
-  selection dictionary for 2j2b region
-TEXIT : Dict
+SELECTION_1j1b: str
+  selection tW for 1j1b region
+SELECTION_2j1b: str
+  selection tW for 2j1b region
+SELECTION_2j2b: str
+  selection tW for 2j2b region
+SELECTION_3j: str
+  selection tW for 3j region
+TEXIT: dict
   Maps simple strings to common TeX strings
 """
 
-import numpy as np
 
+SELECTION_1j1b = "(OS == True) & (elmu == True) & (reg1j1b == True)"
+SELECTION_2j1b = "(OS == True) & (elmu == True) & (reg2j1b == True)"
+SELECTION_2j2b = "(OS == True) & (elmu == True) & (reg2j2b == True)"
+SELECTION_3j1b = "(OS == True) & (elmu == True) & (reg3j1b == True)"
+SELECTION_3jHb = "(OS == True) & (elmu == True) & (reg3jHb == True)"
+SELECTION_3j = "(OS == True) & (elmu == True) & (reg3j == True)"
 
-def get_device():
-    """helper function for getting pytorch device"""
-    import torch
-
-    return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
-SD_1J1B = {
-    "OS": (np.equal, True),
-    "elmu": (np.equal, True),
-    "reg1j1b": (np.equal, True),
+TEXIT = {
+    "ttbar": r"$t\bar{t}$",
+    "tW": r"$tW$",
+    "elmu": r"$e\mu$",
+    "tW_DR": r"$tW$",
+    "tW_DS": r"$tW$ (DS)",
 }
-
-SD_2J1B = {
-    "OS": (np.equal, True),
-    "elmu": (np.equal, True),
-    "reg2j1b": (np.equal, True),
-}
-
-SD_2J2B = {
-    "OS": (np.equal, True),
-    "elmu": (np.equal, True),
-    "reg2j2b": (np.equal, True),
-}
-
-TEXIT = {"ttbar": r"$t\bar{t}$", "tW": r"$tW$", "elmu": r"$e\mu$"}

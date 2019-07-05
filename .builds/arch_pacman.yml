@@ -2,6 +2,7 @@ image: archlinux
 packages:
   - python
   - python-pip
+  - python-setuptools
   - python-matplotlib
   - python-numpy
   - python-pandas
@@ -9,9 +10,14 @@ packages:
   - python-h5py
   - python-pytest
   - python-lz4
+  - python-scikit-learn
+  - python-wheel
   - hdf5
+  - twine
 sources:
-  - https://git.sr.ht/~ddavis/twaml
+  - https://github.com/drdavis/twaml
+secrets:
+  - a7bb07f9-3681-4e7e-8650-e49e3ca8c822
 tasks:
   - setup: |
       sudo pip install uproot
@@ -20,6 +26,11 @@ tasks:
       cd twaml
       sudo pip install .
       pytest
+  - publish: |
+      cd twaml
+      python setup.py sdist bdist_wheel
+      ls -lh dist
+      python .ci-scripts/srht-pypi.py
 triggers:
   - action: email
     condition: failure

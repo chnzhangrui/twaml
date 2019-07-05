@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
 import xgboost as xgb
-from twaml.data import dataset
+from twaml.data import from_pytables
 from twaml.data import scale_weight_sum
 from twaml.viz import compare_columns
 import matplotlib.pyplot as plt
@@ -29,9 +29,9 @@ BRANCHES = [
 
 
 def get_combined():
-    ttbar = dataset.from_pytables("ttbar.h5", "ttbar", label=0)
-    tW_DR = dataset.from_pytables("tW_DR.h5", "tW_DR", label=0)
-    tW_DS = dataset.from_pytables("tW_DS.h5", "tW_DS", label=1)
+    ttbar = from_pytables("ttbar.h5", "ttbar", label=0)
+    tW_DR = from_pytables("tW_DR.h5", "tW_DR", label=0)
+    tW_DS = from_pytables("tW_DS.h5", "tW_DS", label=1)
     scale_weight_sum(tW_DR, ttbar)
     scale_weight_sum(tW_DS, ttbar)
     tW_DR.weights *= 0.5

@@ -1,83 +1,72 @@
-# -*- coding: utf-8 -*-
-
-"""twaml.data module
-
-This module contains classes to abstract datasets using
-pandas.DataFrames as the payload for feeding to machine learning
-frameworks and other general data investigating
-
+"""
+This module contains a class (and functions to load it) which
+abstracts datasets using ``pandas.DataFrames`` as the payload for
+feeding to machine learning frameworks and other general data
+investigating.
 """
 
+import re
+from pathlib import PosixPath
+from typing import List, Tuple, Optional, Union, Dict, Any
+from concurrent.futures import ThreadPoolExecutor
+import logging
 import uproot
 import pandas as pd
 import h5py
 import numpy as np
-import re
-from pathlib import PosixPath
-from typing import List, Dict, Tuple, Optional
-import logging
+import yaml
 
 log = logging.getLogger(__name__)
 
-__all__ = ["dataset", "scale_weight_sum"]
+__all__ = ["dataset", "from_root", "from_pytables", "from_h5", "scale_weight_sum"]
 
 
 class dataset:
-    """A class to define a dataset with a pandas.DataFrame as the payload
-    of the class. The twaml.data module provides a set of functions to
-    construct a dataset. The class constructor should be used only in
-    very special cases.
+    """A class to define a dataset with a :class:`pandas.DataFrame` as the
+    payload of the class. The ``twaml.data`` module provides a set of
+    static functions to construct a dataset. The class constructor
+    should be used only in very special cases.
 
-    ``datasets`` should `always` be constructed from a staticmethod,
-    currently there are 3 available:
+    ``datasets`` should `always` be constructed using one of three functions:
 
-      - :meth:`dataset.from_root`
-      - :meth:`dataset.from_pytables`
-      - :meth:`dataset.from_h5`
+      - :meth:`from_root`
+      - :meth:`from_pytables`
+      - :meth:`from_h5`
 
     Attributes
     ----------
-    files: List[PosixPath]
-      List of files delivering the dataset
     name: str
       Name for the dataset
+    weight_name: str
+      Name of the branch which the weight array originates from
     tree_name: str
-      All of our datasets had to come from a ROOT tree at some
-      point. This is the name
-    weights: numpy.ndarray
-      The array of event weights
-    df: pandas.DataFrame
-      The payload of the class, a dataframe
-    extra_weights: Optional[pandas.DataFrame]
-      Extra weights to have access too
+      All of our datasets had to come from a ROOT tree at some point
+    selection_formula: Optional[str]
+      A string (in :meth:`pandas.DataFrame.eval` form) that all of data in
+      the dataset had to satisfy
     label: Optional[int]
       Optional dataset label (as an int)
     auxlabel: Optional[int]
       Optional auxiliary label (as an int) - sometimes we need two labels
-    label_asarray: Optional[np.ndarray]
-      Optional dataset label (as an array of ints)
-    auxlabel_asarray: Optional[np.ndarray]
-      Optional dataset auxiliary label (as an array of ins)
-    has_payload: bool
-      Flag to know that the dataset actually wraps data
-    cols: List[str]
-      Column names as a list of strings
-    shape: Tuple
-      Shape of the main payload dataframe
-
+    TeXlabel: Optional[str]
+      LaTeX formatted name (for plot labels)
     """
 
-    _weights = None
-    _df = None
-    _extra_weights = None
-    files = None
     name = None
     weight_name = None
     tree_name = None
-    _label = None
-    _auxlabel = None
+    selection_formula = None
+    label = None
+    auxlabel = None
+    TeXlabel = None
 
-    def _init(
+    _weights = None
+    _df = None
+    _auxweights = None
+    _files = None
+    _wtloop_metas = None
+
+    def _init_skeleton(
         self,
         input_files: List[str],
         name: Optional[str] = None,
@@ -85,48 +74,57 @@ class dataset:
         weight_name: str = "weight_nominal",
         label: Optional[int] = None,
         auxlabel: Optional[int] = None,
+        TeXlabel: Optional[str] = None,
     ) -> None:
         """Default initialization - should only be called by internal
         staticmethods ``from_root``, ``from_pytables``, ``from_h5``
 
         Parameters
         ----------
-        input_files: List[str]
+        input_files:
           List of input files
-        name: Optional[str]
+        name:
           Name of the dataset (if none use first file name)
-        tree_name: str
+        tree_name:
           Name of tree which this dataset originated from
-        weight_name: str
+        weight_name:
           Name of the weight branch
-        label: Optional[int]
+        label:
           Give dataset an integer based label
-        auxlabel: Optional[int]
+        auxlabel:
           Give dataset an integer based auxiliary label
+        TeXlabel:
+          LaTeX form label
         """
-        self._weights = np.array([])
-        self._df = pd.DataFrame({})
-        self._extra_weights = None
-        self.files = [PosixPath(f) for f in input_files]
-        for f in self.files:
-            assert f.exists(), "{} does not exist".format(f)
+        self._files = [PosixPath(f).resolve(strict=True) for f in input_files]
         if name is None:
             self.name = str(self.files[0].parts[-1])
         else:
             self.name = name
         self.weight_name = weight_name
         self.tree_name = tree_name
-        self._label = label
-        self._auxlabel = auxlabel
+        self.label = label
+        self.auxlabel = auxlabel
+        self.TeXlabel = TeXlabel
 
-    @property
     def has_payload(self) -> bool:
+        """check if dataframe and weights are non empty"""
         has_df = not self._df.empty
         has_weights = self._weights.shape[0] > 0
         return has_df and has_weights
 
     @property
+    def files(self) -> List[PosixPath]:
+        """list of files which make up the dataset"""
+        return self._files
+
+    @files.setter
+    def files(self, new) -> None:
+        self._files = new
+
+    @property
     def df(self) -> pd.DataFrame:
+        """the payload of the dataset class"""
         return self._df
 
     @df.setter
@@ -136,6 +134,7 @@ class dataset:
 
     @property
     def weights(self) -> np.ndarray:
+        """array of event weights"""
         return self._weights
 
     @weights.setter
@@ -144,68 +143,142 @@ class dataset:
         self._weights = new
 
     @property
-    def extra_weights(self) -> pd.DataFrame:
-        return self._extra_weights
+    def auxweights(self) -> pd.DataFrame:
+        """dataframe of auxiliary event weights"""
+        return self._auxweights
 
-    @extra_weights.setter
-    def extra_weights(self, new: pd.DataFrame) -> None:
+    @auxweights.setter
+    def auxweights(self, new: pd.DataFrame) -> None:
         if new is not None:
-            assert len(new) == len(self._df), "extra_weights length != frame length"
-        self._extra_weights = new
-
-    @property
-    def label(self) -> Optional[int]:
-        return self._label
-
-    @label.setter
-    def label(self, new: int) -> None:
-        self._label = new
-
-    @property
-    def label_asarray(self) -> Optional[np.ndarray]:
-        if self._label is None:
-            return None
-        return np.ones_like(self.weights, dtype=np.int64) * self._label
-
-    @property
-    def auxlabel(self) -> Optional[int]:
-        return self._auxlabel
-
-    @auxlabel.setter
-    def auxlabel(self, new: int) -> None:
-        self._auxlabel = new
-
-    @property
-    def auxlabel_asarray(self) -> Optional[np.ndarray]:
-        if self._auxlabel is None:
-            return None
-        return np.ones_like(self.weights, dtype=np.int64) * self._auxlabel
-
-    @property
-    def cols(self) -> List[str]:
-        return list(self.df.columns)
+            assert len(new) == len(self._df), "auxweights length != frame length"
+        self._auxweights = new
 
     @property
     def shape(self) -> Tuple:
-        """Get shape of dataset (shortcut to pd.DataFrame.shape)"""
+        """shape of dataset (n events, n features)"""
         return self.df.shape
 
     @shape.setter
     def shape(self, new) -> None:
         raise NotImplementedError("Cannot set shape manually")
 
+    @property
+    def wtloop_metas(self) -> Optional[Dict[str, Dict[str, Any]]]:
+        """dictionary of metadata information (one for each file making up the dataset)"""
+        return self._wtloop_metas
+
+    @wtloop_metas.setter
+    def wtloop_metas(self, new) -> None:
+        self._wtloop_metas = new
+
+    @property
+    def initial_state(self) -> str:
+        """retrieve initial state from the wtloop_metas information (if available)
+
+        This will return 'unknown' if wtloop_metas information is
+        unavailable, or a set if multiple different initial states are
+        found.
+        """
+        if self.wtloop_metas is None:
+            return "unknown"
+
+        init_states = set()
+        for _, v in self.wtloop_metas.items():
+            init_states.add(v["initial_state"])
+        if len(init_states) == 1:
+            for elem in init_states:
+                return elem
+        else:
+            return init_states
+
+    @property
+    def dsid(self) -> int:
+        """retrieve the DSID from the wtloop_metas information (if available)
+
+        This will return 999999 if wtloop_metas information is
+        unavailable, or a set if multiple different DSIDs are found.
+        """
+        if self.wtloop_metas is None:
+            return 999999
+
+        dsids = set()
+        for _, v in self.wtloop_metas.items():
+            dsids.add(v["dsid"])
+        if len(dsids) == 1:
+            for elem in dsids:
+                return elem
+        else:
+            return dsids
+
+    def label_asarray(self) -> Optional[np.ndarray]:
+        """retrieve a homogenuous array of labels (or ``None``) if no label"""
+        if self.label is None:
+            return None
+        return np.ones_like(self.weights, dtype=np.int64) * self.label
+
+    def auxlabel_asarray(self) -> Optional[np.ndarray]:
+        """retrieve a homogenous array of auxiliary labels (or ``None``) if no auxlabel"""
+        if self.auxlabel is None:
+            return None
+        return np.ones_like(self.weights, dtype=np.int64) * self.auxlabel
+
+    def __len__(self) -> int:
+        """length of the dataset"""
+        return len(self.weights)
+
+    def __repr__(self) -> str:
+        """standard repr"""
+        return f"<twaml.data.dataset(name={self.name}, shape={self.shape})>"
+
+    def __str__(self) -> str:
+        """standard str"""
+        return f"dataset(name={self.name})"
+
+    def __getitem__(self, idx) -> "dataset":
+        """get subset based on boolean mask or array of indices"""
+        new_df = self._df[idx]
+        new_w = self._weights[idx]
+        if self._auxweights is not None:
+            new_aw = self._auxweights[idx]
+        else:
+            new_aw = None
+        new_ds = dataset()
+        new_ds._init_skeleton(
+            self.files,
+            self.name,
+            weight_name=self.weight_name,
+            tree_name=self.tree_name,
+            label=self.label,
+            auxlabel=self.auxlabel,
+            TeXlabel=self.TeXlabel,
+        )
+        new_ds.wtloop_metas = self.wtloop_metas
+        new_ds._set_df_and_weights(new_df, new_w, auxw=new_aw)
+        return new_ds
+
     def _set_df_and_weights(
-        self, df: pd.DataFrame, w: np.ndarray, extra: Optional[pd.DataFrame] = None
+        self, df: pd.DataFrame, w: np.ndarray, auxw: Optional[pd.DataFrame] = None
     ) -> None:
         assert len(df) == len(w), "unequal length df and weights"
         self._df = df
         self._weights = w
-        if extra is not None:
-            assert len(df) == len(extra), "unequal length df and extra weights"
-            self._extra_weights = extra
+        if auxw is not None:
+            assert len(df) == len(auxw), "unequal length df and auxw weights"
+            self._auxweights = auxw
+
+    @staticmethod
+    def _combine_wtloop_metas(meta1, meta2) -> Optional[dict]:
+        if meta1 is not None and meta2 is not None:
+            return {**meta1, **meta2}
+        if meta1 is None and meta2 is not None:
+            return {**meta2}
+        if meta1 is not None and meta2 is None:
+            return {**meta1}
+        return None
 
     def keep_columns(self, cols: List[str]) -> None:
-        """Drop all columns not included in ``cols``
+        """
+        Drop all columns not included in ``cols``
 
         Parameters
         ----------
@@ -214,16 +287,48 @@ class dataset:
         """
         self._df = self._df[cols]
 
-    def keep_weights(self, weights: List[str]) -> None:
-        """Drop all columns from the extra weights frame that are not in
-        ``weights``
+    def aggressively_strip(self) -> None:
+        """Drop all columns that should never be used in a classifier.
 
-        Parameters
-        ----------
-        weights: List[str]
-          Weights to keep in the extra weights frame
+        This calls the following functions:
+
+        - :meth:`rm_meta_columns`
+        - :meth:`rm_region_columns`
+        - :meth:`rm_chargeflavor_columns`
+        - :meth:`rm_weight_columns`
         """
-        self._extra_weights = self._extra_weights[weights]
+        self.rm_meta_columns()
+        self.rm_region_columns()
+        self.rm_chargeflavor_columns()
+        self.rm_weight_columns()
+
+    def rm_meta_columns(self) -> None:
+        """Drop all columns are are considered meta data from the payload
+
+        This includes runNumber, eventNumber, randomRunNumber
+
+        Internally this is done by calling
+        :meth:`pandas.DataFrame.drop` with ``inplace`` on the payload.
+        """
+        self.df.drop(columns=["runNumber", "randomRunNumber", "eventNumber"], inplace=True)
+
+    def rm_region_columns(self) -> None:
+        """Drop all columns that are prefixed with ``reg``, like ``reg2j2b``
+
+        Internally this is done by calling
+        :meth:`pandas.DataFrame.drop` with ``inplace`` on the payload.
+        """
+        rmthese = [c for c in self._df.columns if re.match(r"^reg[0-9]\w+", c)]
+        self._df.drop(columns=rmthese, inplace=True)
+
+    def rm_chargeflavor_columns(self) -> None:
+        """Drop all columns that are related to charge and flavor
+
+        This would be [elmu, elel, mumu, OS, SS]
+        Internally this is done by calling
+        :meth:`pandas.DataFrame.drop` with ``inplace`` on the payload.
+        """
+        self.df.drop(columns=["OS", "SS", "elmu", "elel", "mumu"], inplace=True)
 
     def rm_weight_columns(self) -> None:
         """Remove all payload df columns which begin with ``weight_``
@@ -234,33 +339,17 @@ class dataset:
         weights to be separated from the payload's main dataframe.
 
         Internally this is done by calling
-        ``pd.DataFrame.drop(..., inplace=True)`` on the payload
+        :meth:`pandas.DataFrame.drop` with ``inplace`` on the payload
 
         """
-        import re
-
-        pat = re.compile("^weight_")
-        rmthese = [c for c in self._df.columns if re.match(pat, c)]
+        rmthese = [c for c in self._df.columns if re.match(r"^weight_\w+", c)]
         self._df.drop(columns=rmthese, inplace=True)
 
-    def rmcolumns_re(self, pattern: str) -> None:
-        """Remove some columns from the payload based on regex paterns
-
-        Uses ``pd.DataFrame.drop(..., inplace=True)``.
-
-        Parameters
-        ----------
-        pattern : str
-          Regex used to remove columns
-        """
-        pat = re.compile(pattern)
-        rmthese = [c for c in self._df.columns if re.search(pat, c)]
-        self._df.drop(columns=rmthese, inplace=True)
-
-    def rmcolumns(self, cols: List[str]) -> None:
+    def rm_columns(self, cols: List[str]) -> None:
         """Remove columns from the dataset
 
-        Users ``pd.DataFrame.drop(..., inplace=True)``.
+        Internally this is done by calling
+        :meth:`pandas.DataFrame.drop` with ``inplace`` on the payload
 
         Parameters
         ----------
@@ -270,36 +359,52 @@ class dataset:
         """
         self._df.drop(columns=cols, inplace=True)
 
+    def keep_weights(self, weights: List[str]) -> None:
+        """Drop all columns from the aux weights frame that are not in ``weights``
+
+        Parameters
+        ----------
+        weights: List[str]
+          Weights to keep in the aux weights frame
+        """
+        self._auxweights = self._auxweights[weights]
+
     def change_weights(self, wname: str) -> None:
         """Change the main weight of the dataset
 
         this function will swap the current main weight array of the
-        dataset with one in the extra_weights frame.
+        dataset with one in the ``auxweights`` frame (based on its
+        name in the ``auxweights`` frame).
+
+        Parameters
+        ----------
+        wname:
+          name of weight in ``auxweight`` DataFrame to turn into the main weight.
+
         """
-        assert self._extra_weights is not None, "extra weights do not exist"
+        assert self._auxweights is not None, "aux weights do not exist"
 
         old_name = self.weight_name
         old_weights = self.weights
-        self._extra_weights[old_name] = old_weights
+        self._auxweights[old_name] = old_weights
 
-        self.weights = self._extra_weights[wname].to_numpy()
+        self.weights = self._auxweights[wname].to_numpy()
         self.weight_name = wname
 
-        self._extra_weights.drop(columns=[wname], inplace=True)
+        self._auxweights.drop(columns=[wname], inplace=True)
 
     def append(self, other: "dataset") -> None:
-
         """Append a dataset to an exiting one
 
         We perform concatenations of the dataframes and weights to
         update the existing dataset's payload.
 
-        if one dataset has extra weights and the other doesn't,
-        the extra weights are dropped.
+        if one dataset has aux weights and the other doesn't,
+        the aux weights are dropped.
 
         Parameters
         ----------
-        other : twanaet.data.dataset
+        other : twaml.data.dataset
           The dataset to append
 
         """
@@ -308,45 +413,81 @@ class dataset:
         assert self.weight_name == other.weight_name, "different weight names"
         assert self.shape[1] == other.shape[1], "different df columns"
 
-        if self.extra_weights is not None and other.extra_weights is not None:
+        if self._auxweights is not None and other.auxweights is not None:
             assert (
-                self.extra_weights.shape[1] == other.extra_weights.shape[1]
-            ), "extra weights are different lengths"
+                self._auxweights.shape[1] == other.auxweights.shape[1]
+            ), "aux weights are different lengths"
 
         self._df = pd.concat([self._df, other.df])
         self._weights = np.concatenate([self._weights, other.weights])
-        self.files = self.files + other.files
+        self._files = self._files + other._files
+        self._wtloop_metas = self._combine_wtloop_metas(
+            self._wtloop_metas, other._wtloop_metas
+        )
 
-        if self.extra_weights is not None and other.extra_weights is not None:
-            self._extra_weights = pd.concat([self._extra_weights, other.extra_weights])
+        if self._auxweights is not None and other.auxweights is not None:
+            self._auxweights = pd.concat([self._auxweights, other.auxweights])
         else:
-            self._extra_weights = None
+            self._auxweights = None
 
-    def to_pytables(self, file_name: str) -> None:
-        """Write payload to disk as an pytables h5 file with strict options
+    def to_pytables(self, file_name: str, to_hdf_kw: Optional[Dict[str, Any]] = None) -> None:
+        """Write dataset to disk as a pytables h5 file
 
-        The key in the file is the name of the dataset. The weights
-        array is stored as a separate frame with the key being the
-        weight_name attribute. If extra weights are present they
-        are saved as well.
+        This method saves a file using a strict twaml-compatible
+        naming scheme. An existing dataset label **is not
+        stored**. The properties of the class that are serialized to
+        disk (and the associated key for each item):
 
-        An existing dataset label **is not stored**.
+        - ``df`` as ``{name}_payload``
+        - ``weights`` as ``{name}_{weight_name}``
+        - ``auxweights`` as ``{name}_auxweights``
+        - ``wtloop_metas`` as ``{name}_wtloop_metas``
+
+        These properties are wrapped in a pandas DataFrame (if they
+        are not already) to be stored in a .h5 file. The
+        :meth:`from_pytables` is designed to read in this output; so
+        the standard use case is to call this function to store a
+        dataset that was intialized via :meth:`from_root`.
+
+        Internally this function uses :meth:`pandas.DataFrame.to_hdf`
+        on a number of structures.
 
         Parameters
         ----------
-        file_name : str
+        file_name:
           output file name,
+        format:
+          dict of keyword arguments fed to :meth:`pd.DataFrame.to_hdf`
+
+        Examples
+        --------
+
+        >>> ds = twaml.dataset.from_root("file.root", name="myds",
+        ...                              detect_weights=True, wtloop_metas=True)
+        >>> ds.to_pytables("output.h5")
+        >>> ds_again = twaml.dataset.from_pytables("output.h5")
+        >>> ds_again.name
+        'myds'
 
         """
-        if PosixPath(file_name).exists:
+        if to_hdf_kw is None:
+            to_hdf_kw = {}
+        log.info(f"Creating pytables dataset with name '{self.name}' in {file_name}")
+        log.info(f"  selection used: '{self.selection_formula}'")
+        log.info(f"  original source was:")
+        for fname in self.files:
+            log.info(f"   - {fname}")
+        if PosixPath(file_name).exists():
             log.warning(f"{file_name} exists, overwriting")
         weights_frame = pd.DataFrame(dict(weights=self._weights))
-        self._df.to_hdf(file_name, self.name, mode="w")
-        weights_frame.to_hdf(file_name, self.weight_name, mode="a")
-        if self._extra_weights is not None:
-            self._extra_weights.to_hdf(
-                file_name, "{}_extra_weights".format(self.name), mode="a"
-            )
+        self._df.to_hdf(file_name, f"{self.name}_payload", mode="w", **to_hdf_kw)
+        weights_frame.to_hdf(file_name, f"{self.name}_{self.weight_name}", mode="a")
+        if self._auxweights is not None:
+            self._auxweights.to_hdf(file_name, f"{self.name}_auxweights", mode="a")
+        if self.wtloop_metas is not None:
+            tempdict = {k: np.array([str(v)]) for k, v in self.wtloop_metas.items()}
+            wtmetadf = pd.DataFrame.from_dict(tempdict)
+            wtmetadf.to_hdf(file_name, f"{self.name}_wtloop_metas", mode="a")
 
     def __add__(self, other: "dataset") -> "dataset":
         """Add two datasets together
@@ -354,8 +495,8 @@ class dataset:
         We perform concatenations of the dataframes and weights to
         generate a new dataset with the combined a new payload.
 
-        if one dataset has extra weights and the other doesn't,
-        the extra weights are dropped.
+        if one dataset has aux weights and the other doesn't,
+        the aux weights are dropped.
 
         """
         assert self.has_payload, "Unconstructed df (self)"
@@ -363,318 +504,456 @@ class dataset:
         assert self.weight_name == other.weight_name, "different weight names"
         assert self.shape[1] == other.shape[1], "different df columns"
 
-        if self.extra_weights is not None and other.extra_weights is not None:
+        if self._auxweights is not None and other.auxweights is not None:
             assert (
-                self.extra_weights.shape[1] == other.extra_weights.shape[1]
-            ), "extra weights are different lengths"
+                self._auxweights.shape[1] == other.auxweights.shape[1]
+            ), "aux weights are different lengths"
 
         new_weights = np.concatenate([self.weights, other.weights])
         new_df = pd.concat([self.df, other.df])
         new_files = [str(f) for f in (self.files + other.files)]
         new_ds = dataset()
-        new_ds._init(
+        new_ds._init_skeleton(
             new_files,
             self.name,
             weight_name=self.weight_name,
             tree_name=self.tree_name,
-            label=self._label,
-            auxlabel=self._auxlabel,
+            label=self.label,
+            auxlabel=self.auxlabel,
+            TeXlabel=self.TeXlabel,
+        )
+        new_ds.wtloop_metas = self._combine_wtloop_metas(
+            self.wtloop_metas, other.wtloop_metas
         )
 
-        if self.extra_weights is not None and other.extra_weights is not None:
-            new_aw = pd.concat([self.extra_weights, other.extra_weights])
+        if self._auxweights is not None and other.auxweights is not None:
+            new_aw = pd.concat([self._auxweights, other.auxweights])
         else:
             new_aw = None
 
-        new_ds._set_df_and_weights(new_df, new_weights, extra=new_aw)
+        new_ds._set_df_and_weights(new_df, new_weights, auxw=new_aw)
         return new_ds
 
-    def __len__(self) -> int:
-        """length of the dataset"""
-        return len(self.weights)
-
-    def __repr__(self) -> str:
-        """standard repr"""
-        return "<twaml.data.dataset(name={}, shape={})>".format(self.name, self.shape)
-
-    def __str__(self) -> str:
-        """standard str"""
-        return "dataset(name={})".format(self.name)
-
-    @staticmethod
-    def from_root(
-        input_files: List[str],
-        name: Optional[str] = None,
-        tree_name: str = "WtLoop_nominal",
-        weight_name: str = "weight_nominal",
-        branches: List[str] = None,
-        selection: Dict = None,
-        label: Optional[int] = None,
-        auxlabel: Optional[int] = None,
-        allow_weights_in_df: bool = False,
-        extra_weights: Optional[List[str]] = None,
-        detect_weights: bool = False,
-        executor: Optional["ThreadPoolExecutor"] = None,
-    ) -> "dataset":
-        """Create a dataset from ROOT files
+    def selection_masks(
+        self, selections: Dict[str, str]
+    ) -> Tuple[Dict[str, "np.ndarray"], Tuple[str]]:
+        """Based on a dictionary of selections, calculate masks (boolean
+        ararys) for each selection
 
         Parameters
         ----------
-        input_files: List[str]
-          List of ROOT input_files to use
-        name: str
-          Name of the dataset (if none use first file name)
-        tree_name: str
-          Name of the tree in the file to use
-        weight_name: str
-          Name of the weight branch
-        branches: List[str]
-          List of branches to store in the dataset, if None use all
-        selection: Dict
-          A dictionary of selections to apply of the form:
-          ``{branch_name: (numpy.ufunc, test_value)}``. the
-          selections are combined using ``np.logical_and``
-        label: Optional[int]
-          Give the dataset an integer label
-        auxlabel: Optional[int]
-          Give the dataset an integer auxiliary label
-        allow_weights_in_df: bool
-          Allow "^weight_" branches in the payload dataframe
-        extra_weights: Optional[List[str]]
-          Extra weights to store in a second dataframe.
-        detect_weights: bool
-          If True, fill the extra_weights df with all "^weight_"
-          branches If ``extra_weights`` is not None, this option is
-          ignored.
-        executor: Optional[ThreadPoolExecutor]
-          Fill frames using multiple threads,
-          see uproot.TTreeMethods_pandas.df
+        selections:
+          Dictionary of selections in the form ``{ name : selection }``.
+
+        """
+        masks = {}
+        selstrs = []
+        for sel_key, sel_val in selections.items():
+            masks[sel_key] = np.asarray(self.df.eval(sel_val))
+            selstrs.append(sel_val)
+        return masks, tuple(selstrs)
+
+    def selected_datasets(self, selections: Dict[str, str]) -> Dict[str, "dataset"]:
+        """Based on a dictionary of selections, break the dataset into a set
+        of multiple (finer grained) datasets.
+
+        Warnings
+        --------
+        For large datasets this can get memory intensive quickly. A
+        good alternative is :meth:`selection_masks` combined with the
+        ``__getitem__`` implementation.
+
+        Parameters
+        ----------
+        selections:
+          Dictionary of selections in the form ``{ name : selection }``.
 
         Examples
         --------
-        Example with a single file and two branches:
 
-        >>> ds1 = dataset.from_root(["file.root"], name="myds",
-        ...                         branches=["pT_lep1", "pT_lep2"], label=1)
+        A handful of selections with all requiring ``OS`` and ``elmu``
+        to be true, while changing the ``reg{...}`` requirement.
 
-        Example with multiple input_files and a selection (uses all
-        branches). The selection requires the branch ``nbjets == 1``
-        and ``njets >= 1``, then label it 5.
-
-        >>> flist = ["file1.root", "file2.root", "file3.root"]
-        >>> ds = dataset.from_root(flist, selection={"nbjets": (np.equal, 1),
-        ...                                          "njets": (np.greater, 1)}
-        >>> ds.label = 5
-
-        Example using extra weights
-
-        >>> ds = dataset.from_root(flist, name="myds", weight_name="weight_nominal",
-        ...                        extra_weights=["weight_sys_radLo", " weight_sys_radHi"])
-
-        Example where we detect extra weights automatically
-
-        >>> ds = dataset.from_root(flist, name="myds", weight_name="weight_nominal",
-        ...                        detect_weights=True)
-
-        Example using an executor (16 threads):
-
-        >>> from concurrent.futures import ThreadPoolExecutor
-        >>> executor = ThreadPoolExecutor(16)
-        >>> ds = dataset.from_root(flist, name="myds", executor=executor)
+        >>> selections = { '1j1b' : '(reg1j1b == True) & (OS == True) & (elmu == True)',
+        ...                '2j1b' : '(reg2j1b == True) & (OS == True) & (elmu == True)',
+        ...                '2j2b' : '(reg2j2b == True) & (OS == True) & (elmu == True)',
+        ...                '3j1b' : '(reg3j1b == True) & (OS == True) & (elmu == True)'}
+        >>> selected_datasets = ds.selected_datasets(selections)
 
         """
-
-        ds = dataset()
-        ds._init(
-            input_files,
-            name,
-            tree_name=tree_name,
-            weight_name=weight_name,
-            label=label,
-            auxlabel=auxlabel,
-        )
-
-        uproot_trees = [uproot.open(file_name)[tree_name] for file_name in input_files]
-
-        wpat = re.compile("^weight_")
-        if extra_weights is not None:
-            w_branches = extra_weights
-        elif detect_weights:
-            urtkeys = [k.decode("utf-8") for k in uproot_trees[0].keys()]
-            w_branches = [k for k in urtkeys if re.match(wpat, k)]
-            if weight_name in w_branches:
-                w_branches.remove(weight_name)
-        else:
-            w_branches = None
-
-        weight_list, frame_list, extra_frame_list = [], [], []
-        for t in uproot_trees:
-            raw_w = t.array(weight_name)
-            raw_f = t.pandas.df(
-                branches=branches, namedecode="utf-8", executor=executor
+        breaks = {}
+        for sel_key, sel_val in selections.items():
+            mask = self.df.eval(sel_val)
+            new_df = self.df[mask]
+            new_weights = self.weights[mask]
+            new_auxweights = None
+            if self.auxweights is not None:
+                new_auxweights = self.auxweights[mask]
+            new_meta = self.wtloop_metas
+            new_ds = dataset()
+            new_ds._init_skeleton(
+                self.files,
+                self.name,
+                self.tree_name,
+                self.weight_name,
+                label=self.label,
+                auxlabel=self.auxlabel,
+                TeXlabel=self.TeXlabel,
             )
-            if not allow_weights_in_df:
-                rmthese = [c for c in raw_f.columns if re.match(wpat, c)]
-                raw_f.drop(columns=rmthese, inplace=True)
+            new_ds._set_df_and_weights(new_df, new_weights, new_auxweights)
+            new_ds.wtloop_metas = new_meta
+            new_ds.selection_formula = sel_val
+            breaks[sel_key] = new_ds
 
-            if w_branches is not None:
-                raw_aw = t.pandas.df(branches=w_branches, namedecode="utf-8")
-
-            isel = np.ones((raw_w.shape[0]), dtype=bool)
-            if selection is not None:
-                selections = {k: v[0](t.array(k), v[1]) for k, v in selection.items()}
-                for k, v in selections.items():
-                    isel = np.logical_and(isel, v)
-            weight_list.append(raw_w[isel])
-            frame_list.append(raw_f[isel])
-            if w_branches is not None:
-                extra_frame_list.append(raw_aw[isel])
-
-        weights_array = np.concatenate(weight_list)
-        df = pd.concat(frame_list)
-        if w_branches is not None:
-            aw_df = pd.concat(extra_frame_list)
-        else:
-            aw_df = None
-
-        ds._set_df_and_weights(df, weights_array, extra=aw_df)
-        return ds
-
-    @staticmethod
-    def from_pytables(
-        file_name: str,
-        name: str,
-        tree_name: str = "WtLoop_nominal",
-        weight_name: str = "weight_nominal",
-        label: Optional[int] = None,
-        auxlabel: Optional[int] = None,
-    ) -> "dataset":
-        """Create an h5 dataset from pytables output generated from
-        dataset.to_pytables
-
-        The payload is extracted from the .h5 pytables files using the
-        name of the dataset and the weight name. If the name of the
-        dataset doesn't exist in the file you'll crash. Extra weights
-        are retrieved if available.
-
-        Parameters
-        ----------
-        file_name: str
-          Name of h5 file containing the payload
-        name: str
-          Name of the dataset inside the h5 file
-        tree_name: str
-          Name of tree where dataset originated
-        weight_name: str
-          Name of the weight array inside the h5 file
-        label: Optional[int]
-          Give the dataset an integer label
-        auxlabel: Optional[int]
-          Give the dataset an integer auxiliary label
-
-        Examples
-        --------
-
-        >>> ds1 = dataset.from_pytables("ttbar.h5", "ttbar")
-        >>> ds1.label = 1 ## add label dataset after the fact
-
-        """
-        main_frame = pd.read_hdf(file_name, name)
-        main_weight_frame = pd.read_hdf(file_name, weight_name)
-        h5f = h5py.File(file_name, "r")
-        if "{}_extra_weights".format(name) in h5f:
-            extra_frame = pd.read_hdf(file_name, "{}_extra_weights".format(name))
-        else:
-            extra_frame = None
-        w_array = main_weight_frame.weights.to_numpy()
-        ds = dataset()
-        ds._init(
-            [file_name],
-            name,
-            weight_name=weight_name,
-            tree_name=tree_name,
-            label=label,
-            auxlabel=auxlabel,
-        )
-        ds._set_df_and_weights(main_frame, w_array, extra=extra_frame)
-        return ds
-
-    @staticmethod
-    def from_h5(
-        file_name: str,
-        name: str,
-        columns: List[str],
-        tree_name: str = "WtLoop_nominal",
-        weight_name: str = "weight_nominal",
-        label: Optional[int] = None,
-        auxlabel: Optional[int] = None,
-    ) -> "dataset":
-        """Create a dataset from generic h5 input (loosely expected to be from
-        the ATLAS Analysis Release utility ``ttree2hdf5``
-
-        The name of the HDF5 dataset inside the file is assumed to be
-        ``tree_name``. The ``name`` argument is something *you
-        choose*.
-
-        Parameters
-        ----------
-        file_name: str
-          Name of h5 file containing the payload
-        name: str
-          Name of the dataset you would like to define
-        columns: List[str]
-          Names of columns (branches) to include in payload
-        tree_name: str
-          Name of tree dataset originates from (HDF5 dataset name)
-        weight_name: str
-          Name of the weight array inside the h5 file
-        label: Optional[int]
-          Give the dataset an integer label
-        auxlabel: Optional[int]
-          Give the dataset an integer auxiliary label
-
-        Examples
-        --------
-
-        >>> ds = dataset.from_h5('file.h5', 'dsname', tree_name='WtLoop_EG_RESOLUTION_ALL__1up')
-
-        """
-        ds = dataset()
-        ds._init(
-            [file_name],
-            name=name,
-            weight_name=weight_name,
-            tree_name=tree_name,
-            label=label,
-            auxlabel=auxlabel,
-        )
-
-        f = h5py.File(file_name, mode="r")
-        full_ds = f[tree_name]
-        w_array = f[tree_name][weight_name]
-        coldict = {}
-        for col in columns:
-            coldict[col] = full_ds[col]
-        frame = pd.DataFrame(coldict)
-        ds._set_df_and_weights(frame, w_array)
-        return ds
+        return breaks
 
 
-def scale_weight_sum(to_update: "dataset", reference: "dataset") -> None:
+def from_root(
+    input_files: Union[str, List[str]],
+    name: Optional[str] = None,
+    tree_name: str = "WtLoop_nominal",
+    weight_name: str = "weight_nominal",
+    branches: List[str] = None,
+    selection: Optional[str] = None,
+    label: Optional[int] = None,
+    auxlabel: Optional[int] = None,
+    allow_weights_in_df: bool = False,
+    aggressively_strip: bool = False,
+    auxweights: Optional[List[str]] = None,
+    detect_weights: bool = False,
+    nthreads: Optional[int] = None,
+    wtloop_meta: bool = False,
+    TeXlabel: Optional[str] = None,
+) -> "dataset":
     """
-    Scale the weights of the `to_update` dataset such that the sum of
-    weights are equal to the sum of weights of the `reference` dataset.
+    Initialize a dataset from ROOT files
 
     Parameters
     ----------
-    to_update : twanet.data.dataset
+    input_files:
+        Single or list of ROOT input file(s) to use
+    name:
+        Name of the dataset (if none use first file name)
+    tree_name:
+        Name of the tree in the file to use
+    weight_name:
+        Name of the weight branch
+    branches:
+        List of branches to store in the dataset, if ``None`` use all
+    selection:
+        A string passed to pandas.DataFrame.eval to apply a selection
+        based on branch/column values. e.g. ``(reg1j1b == True) & (OS == True)``
+        requires the ``reg1j1b`` and ``OS`` branches to be ``True``.
+    label:
+        Give the dataset an integer label
+    auxlabel:
+        Give the dataset an integer auxiliary label
+    allow_weights_in_df:
+        Allow "^weight_\\w+" branches in the payload dataframe
+    aggressively_strip:
+        Call :meth:`twaml.data.dataset.aggressively_strip` during construction
+    auxweights:
+        Auxiliary weights to store in a second dataframe.
+    detect_weights:
+        If True, fill the auxweights df with all "^weight_"
+        branches If ``auxweights`` is not ``None``, this option is
+        ignored.
+    nthreads:
+        Number of threads to use reading the ROOT tree
+        (see uproot.TTreeMethods_pandas.df)
+    wtloop_meta:
+        grab and store the `WtLoop_meta` YAML entries. stored as a dictionary
+        of the form ``{ str(filename) : dict(yaml) }`` in the class variable
+        ``wtloop_metas``.
+    TeXlabel:
+        A LaTeX format label for the dataset
+
+    Examples
+    --------
+    Example with a single file and two branches:
+
+    >>> ds1 = dataset.from_root(["file.root"], name="myds",
+    ...                         branches=["pT_lep1", "pT_lep2"], label=1)
+
+    Example with multiple input_files and a selection (uses all
+    branches). The selection requires the branch ``nbjets == 1``
+    and ``njets >= 1``, then label it 5.
+
+    >>> flist = ["file1.root", "file2.root", "file3.root"]
+    >>> ds = dataset.from_root(flist, selection='(nbjets == 1) & (njets >= 1)')
+    >>> ds.label = 5
+
+    Example using aux weights
+
+    >>> ds = dataset.from_root(flist, name="myds", weight_name="weight_nominal",
+    ...                        auxweights=["weight_sys_radLo", " weight_sys_radHi"])
+
+    Example where we detect aux weights automatically
+
+    >>> ds = dataset.from_root(flist, name="myds", weight_name="weight_nominal",
+    ...                        detect_weights=True)
+
+    Example using a ThreadPoolExecutor (16 threads):
+
+    >>> ds = dataset.from_root(flist, name="myds", nthreads=16)
+
+    """
+
+    if isinstance(input_files, (str, bytes)):
+        input_files = [input_files]
+    else:
+        try:
+            iter(input_files)
+        except TypeError:
+            input_files = [input_files]
+        else:
+            input_files = list(input_files)
+
+    executor = None
+    if nthreads is not None:
+        executor = ThreadPoolExecutor(nthreads)
+
+    ds = dataset()
+    ds._init_skeleton(
+        input_files,
+        name,
+        tree_name=tree_name,
+        weight_name=weight_name,
+        label=label,
+        auxlabel=auxlabel,
+        TeXlabel=TeXlabel,
+    )
+
+    if wtloop_meta:
+        meta_trees = {
+            file_name: uproot.open(file_name)["WtLoop_meta"] for file_name in input_files
+        }
+        ds.wtloop_metas = {
+            fn: yaml.full_load(mt.array("meta_yaml")[0]) for fn, mt in meta_trees.items()
+        }
+
+    uproot_trees = [uproot.open(file_name)[tree_name] for file_name in input_files]
+
+    wpat = re.compile(r"^weight_\w+")
+    if auxweights is not None:
+        w_branches = auxweights
+    elif detect_weights:
+        urtkeys = [k.decode("utf-8") for k in uproot_trees[0].keys()]
+        w_branches = [k for k in urtkeys if re.match(wpat, k)]
+        if weight_name in w_branches:
+            w_branches.remove(weight_name)
+    else:
+        w_branches = None
+
+    frame_list, weight_list, aux_frame_list = [], [], []
+    for t in uproot_trees:
+        raw_w = t.array(weight_name)
+        raw_f = t.pandas.df(branches=branches, namedecode="utf-8", executor=executor)
+        if not allow_weights_in_df:
+            rmthese = [c for c in raw_f.columns if re.match(wpat, c)]
+            raw_f.drop(columns=rmthese, inplace=True)
+
+        if w_branches is not None:
+            raw_aw = t.pandas.df(branches=w_branches, namedecode="utf-8")
+
+        if selection is not None:
+            iselec = raw_f.eval(selection)
+            raw_w = raw_w[iselec]
+            raw_f = raw_f[iselec]
+            if w_branches is not None:
+                raw_aw = raw_aw[iselec]
+
+        assert len(raw_w) == len(raw_f), "frame length and weight length different"
+        weight_list.append(raw_w)
+        frame_list.append(raw_f)
+        if w_branches is not None:
+            aux_frame_list.append(raw_aw)
+            assert len(raw_w) == len(raw_aw), "aux weight length and weight length different"
+
+    weights_array = np.concatenate(weight_list)
+    df = pd.concat(frame_list)
+    if w_branches is not None:
+        aw_df = pd.concat(aux_frame_list)
+    else:
+        aw_df = None
+
+    ds._set_df_and_weights(df, weights_array, auxw=aw_df)
+
+    if aggressively_strip:
+        ds.aggressively_strip()
+
+    return ds
+
+
+def from_pytables(
+    file_name: str,
+    name: str = "auto",
+    tree_name: str = "none",
+    weight_name: str = "auto",
+    label: Optional[int] = None,
+    auxlabel: Optional[int] = None,
+    TeXlabel: Optional[str] = None,
+) -> "dataset":
+    """Initialize a dataset from pytables output generated from
+    :meth:`dataset.to_pytables`
+
+    The payload is extracted from the .h5 pytables files using the
+    name of the dataset and the weight name. If the name of the
+    dataset doesn't exist in the file you'll crash. Aux weights
+    are retrieved if available.
+
+    Parameters
+    ----------
+    file_name:
+        Name of h5 file containing the payload
+    name:
+        Name of the dataset inside the h5 file. If ``"auto"`` (default),
+        we attempt to determine the name automatically from the h5 file.
+    tree_name:
+        Name of tree where dataset originated (only for reference)
+    weight_name:
+        Name of the weight array inside the h5 file. If ``"auto"`` (default),
+        we attempt to determine the name automatically from the h5 file.
+    label:
+        Give the dataset an integer label
+    auxlabel:
+        Give the dataset an integer auxiliary label
+    TeXlabel:
+        LaTeX formatted label
+
+    Examples
+    --------
+
+    Creating a dataset from pytables where everything is auto detected:
+
+    >>> ds1 = dataset.from_pytables("ttbar.h5")
+    >>> ds1.label = 1 ## add label dataset after the fact
+
+    """
+    with h5py.File(file_name, "r") as f:
+        keys = list(f.keys())
+        if name == "auto":
+            for k in keys:
+                if "_payload" in k:
+                    name = k.split("_payload")[0]
+                    break
+        if weight_name == "auto":
+            for k in keys:
+                if "_weight" in k:
+                    weight_name = k.split(f"{name}_")[-1]
+                    break
+
+    main_frame = pd.read_hdf(file_name, f"{name}_payload")
+    main_weight_frame = pd.read_hdf(file_name, f"{name}_{weight_name}")
+    with h5py.File(file_name, "r") as f:
+        if f"{name}_auxweights" in f:
+            aux_frame = pd.read_hdf(file_name, f"{name}_auxweights")
+        else:
+            aux_frame = None
+    w_array = main_weight_frame.weights.to_numpy()
+    ds = dataset()
+    ds._init_skeleton(
+        [file_name],
+        name,
+        weight_name=weight_name,
+        tree_name=tree_name,
+        label=label,
+        auxlabel=auxlabel,
+        TeXlabel=TeXlabel,
+    )
+
+    ds._set_df_and_weights(main_frame, w_array, auxw=aux_frame)
+    with h5py.File(file_name, "r") as f:
+        if f"{name}_wtloop_metas" in f:
+            wtloop_metas = pd.read_hdf(file_name, f"{name}_wtloop_metas")
+            ds.wtloop_metas = {
+                fn: yaml.full_load(wtloop_metas[fn].to_numpy()[0])
+                for fn in wtloop_metas.columns
+            }
+
+    return ds
+
+
+def from_h5(
+    file_name: str,
+    name: str,
+    columns: List[str],
+    tree_name: str = "WtLoop_nominal",
+    weight_name: str = "weight_nominal",
+    label: Optional[int] = None,
+    auxlabel: Optional[int] = None,
+    TeXlabel: Optional[str] = None,
+) -> "dataset":
+    """Initialize a dataset from generic h5 input (loosely expected to be
+    from the ATLAS Analysis Release utility ``ttree2hdf5``
+
+    The name of the HDF5 dataset inside the file is assumed to be
+    ``tree_name``. The ``name`` argument is something *you
+    choose*.
+
+    Parameters
+    ----------
+    file_name:
+        Name of h5 file containing the payload
+    name:
+        Name of the dataset you would like to define
+    columns:
+        Names of columns (branches) to include in payload
+    tree_name:
+        Name of tree dataset originates from (HDF5 dataset name)
+    weight_name:
+        Name of the weight array inside the h5 file
+    label:
+        Give the dataset an integer label
+    auxlabel:
+        Give the dataset an integer auxiliary label
+    TeXlabel:
+        LaTeX form label
+
+    Examples
+    --------
+
+    >>> ds = dataset.from_h5("file.h5", "dsname", TeXlabel=r"$tW$",
+    ...                      tree_name="WtLoop_EG_RESOLUTION_ALL__1up")
+
+    """
+    ds = dataset()
+    ds._init_skeleton(
+        [file_name],
+        name=name,
+        weight_name=weight_name,
+        tree_name=tree_name,
+        label=label,
+        auxlabel=auxlabel,
+        TeXlabel=TeXlabel,
+    )
+
+    f = h5py.File(file_name, mode="r")
+    full_ds = f[tree_name]
+    w_array = f[tree_name][weight_name]
+    coldict = {}
+    for col in columns:
+        coldict[col] = full_ds[col]
+    frame = pd.DataFrame(coldict)
+    ds._set_df_and_weights(frame, w_array)
+    return ds
+
+
+def scale_weight_sum(to_update: "dataset", reference: "dataset") -> None:
+    """Scale the weights of the `to_update` dataset such that the sum of
+    weights are equal to the sum of weights of the `reference`
+    dataset.
+
+    Parameters
+    ----------
+    to_update:
         dataset with weights to be scaled
-    reference : twanet.data.dataset
+    reference
         dataset to scale to
 
     """
-    assert to_update.has_payload, "{} is without payload".format(to_update)
-    assert reference.has_payload, "{} is without payload".format(reference)
+    assert to_update.has_payload, f"{to_update} is without payload"
+    assert reference.has_payload, f"{reference} is without payload"
     sum_to_update = to_update.weights.sum()
     sum_reference = reference.weights.sum()
     to_update.weights *= sum_reference / sum_to_update

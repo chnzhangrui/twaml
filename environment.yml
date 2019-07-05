@@ -1,0 +1,32 @@
+## This will create an environment suitable for twaml
+## development. Also allows for generating docs
+
+name: twaml
+channels:
+  - default
+dependencies:
+  - python=3.6
+  - numpy
+  - scipy
+  - matplotlib
+  - pytables
+  - scikit-learn
+  - pyyaml
+  - h5py
+  - pandas
+  - numba
+  - numexpr
+  - sphinx
+  - sphinx_rtd_theme
+  - pytest
+  - ipython
+  - dask
+  - lz4
+  - pip
+  - pip:
+    - uproot
+    - pyls-black
+    - rope
+    - pyflakes
+    - sphinxcontrib-programoutput
+    - sphinx-autodoc-typehints

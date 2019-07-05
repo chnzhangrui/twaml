@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
 import xgboost as xgb
-from twaml.data import dataset
+from twaml.data import from_pytables
 from twaml.data import scale_weight_sum
 import matplotlib.pyplot as plt
 

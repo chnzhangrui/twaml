@@ -7,6 +7,10 @@ learning requirements for the ATLAS Full Run II tW analysis.
 
 """
 
+from .version import version
+
+__version__ = version
+
 import logging
 
 logging.basicConfig(
@@ -15,8 +19,7 @@ logging.basicConfig(
 )
 
 logging.addLevelName(
-    logging.WARNING,
-    "\033[1;31m{:8}\033[1;0m".format(logging.getLevelName(logging.WARNING)),
+    logging.WARNING, "\033[1;31m{:8}\033[1;0m".format(logging.getLevelName(logging.WARNING))
 )
 logging.addLevelName(
     logging.ERROR, "\033[1;35m{:8}\033[1;0m".format(logging.getLevelName(logging.ERROR))
@@ -27,6 +30,3 @@ logging.addLevelName(
 logging.addLevelName(
     logging.DEBUG, "\033[1;34m{:8}\033[1;0m".format(logging.getLevelName(logging.DEBUG))
 )
-
-
-from .data import dataset

@@ -1,1 +1,1 @@
-Random scripts playing with the modules
+Random scripts for playing/prototyping

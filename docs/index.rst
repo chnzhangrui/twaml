@@ -9,7 +9,7 @@ twaml
 Python tooling for :math:`tW`.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    started.rst
    cli.rst

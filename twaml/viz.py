@@ -93,12 +93,8 @@ def compare_distributions(
         ax[1].set_xlim([h1[1][0], h1[1][-1]])
     else:
         fig, ax = plt.subplots(**subplots_kw)
-        h1 = ax.hist(
-            dist1, bins=bins, histtype="step", label=titles[0], color=colors[0]
-        )
-        h2 = ax.hist(
-            dist2, bins=h1[1], histtype="step", label=titles[1], color=colors[1]
-        )
+        h1 = ax.hist(dist1, bins=bins, histtype="step", label=titles[0], color=colors[0])
+        h2 = ax.hist(dist2, bins=h1[1], histtype="step", label=titles[1], color=colors[1])
         ax.set_xlim([h1[1][0], h1[1][-1]])
 
     return fig, ax, h1, h2

@@ -1,0 +1,93 @@
+1j1b:
+  - null
+
+2j1b:
+  - null
+
+2j2b:
+  - mass_lep1jet2
+  - mass_lep1jet1
+  - deltaR_lep1_jet1
+  - mass_lep2jet1
+  - pTsys_lep1lep2met
+  - pT_jet2
+  - mass_lep2jet2
+
+2j2b_save:
+  - pT_lep1
+  - pT_lep2
+  - pT_jet1
+  - pT_jet2
+  - eta_lep1
+  - eta_lep2
+  - eta_jet1
+  - eta_jet2
+  - phi_lep1
+  - phi_lep2
+  - phi_jet1
+  - phi_jet2
+  - E_lep1
+  - E_lep2
+  - E_jet1
+  - E_jet2
+  - nloosebjets
+  - nloosejets
+  - pT_jetL1
+  - psuedoContTagBin_jet1
+  - psuedoContTagBin_jet2
+
+3j1b:
+  - pT_lep1
+  - pT_lep2
+  - pT_jet1
+  - pT_jet2
+  - pT_jet3
+  - eta_lep1
+  - eta_lep2
+  - eta_jet1
+  - eta_jet2
+  - eta_jet3
+  - phi_lep1
+  - phi_lep2
+  - phi_jet1
+  - phi_jet2
+  - phi_jet3
+  - E_lep1
+  - E_lep2
+  - E_jet1
+  - E_jet2
+  - E_jet3
+  - nloosebjets
+  - nloosejets
+  - pT_jetL1
+  - psuedoContTagBin_jet1
+  - psuedoContTagBin_jet2
+  - psuedoContTagBin_jet3
+
+3jHb:
+  - pT_lep1
+  - pT_lep2
+  - pT_jet1
+  - pT_jet2
+  - pT_jet3
+  - eta_lep1
+  - eta_lep2
+  - eta_jet1
+  - eta_jet2
+  - eta_jet3
+  - phi_lep1
+  - phi_lep2
+  - phi_jet1
+  - phi_jet2
+  - phi_jet3
+  - E_lep1
+  - E_lep2
+  - E_jet1
+  - E_jet2
+  - E_jet3
+  - nloosebjets
+  - nloosejets
+  - pT_jetL1
+  - psuedoContTagBin_jet1
+  - psuedoContTagBin_jet2
+  - psuedoContTagBin_jet3

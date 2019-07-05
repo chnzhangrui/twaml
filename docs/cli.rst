@@ -15,11 +15,13 @@ Convert a set of ROOT files into a single pytables HDF5 file.
 
 An example that uses the default ``--tree-name`` and
 ``--weight-name``, while only saving the branches ``b1`` and ``b2``
-and requiring the branch ``elmu`` to be true to save the event.
+and requiring the branch ``elmu`` to be true and ``pT_lep1`` to be
+greater than 50 to save the event.
 
 .. code-block:: none
 
-   $ twaml-root2pytables -i file.root -o file.h5 --branches b1 b2 --true-branches elmu
+   $ twaml-root2pytables -i file.root -o file.h5 --branches b1 b2 \
+         --selection "(elmu == True) & (pT_lep1 > 50)"
 
 The docs for the function that is being called:
 

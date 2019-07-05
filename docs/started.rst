@@ -12,7 +12,15 @@ It is highy recommended to use the `Anaconda
 required libraries (outside of the bleeding edge machine learning
 packages) will be included with Anaconda environments.
 
-The bare requirements for data handling, plotting, and testing includ
+The simplest way to get up and running with ``twaml`` is to use the ``environment.yml`` file.
+
+.. code-block:: none
+
+   $ cd /path/to/twaml
+   $ conda env create -f environment.yml
+   $ conda activate twaml
+
+The bare requirements for data handling, plotting, and testing include
 (enforced by ``requirements.txt``, see file for verions):
 
 - uproot
@@ -21,12 +29,14 @@ The bare requirements for data handling, plotting, and testing includ
 - matplotlib
 - h5py
 - pytables
+- numexpr (to ensure pandas.eval acceleration)
 
-Since twaml is in an early development stage specific versions may
-change randomly.  listed and tests are run with the latest available
-installation from PyPI or Anaconda/conda-forge.
+Since twaml adopts "`live at the head
+<https://www.youtube.com/watch?v=tISy7EJQPzI>`_", requirement versions
+may be fluid.
 
 For training and testing models (not enforced by ``requirements.txt``)
+you'll probably want:
 
 - tensorflow
 - pytorch
@@ -36,7 +46,8 @@ For building documentation
 
 - sphinx
 - sphinx_rtd_theme
-- m2r
+- sphinx-autodoc-typehints
+- sphinxcontrib-programoutput
 
 
 Base Setup in a venv
@@ -62,10 +73,9 @@ Start with a fresh Anaconda virtual environment:
 
 .. code-block:: none
 
-   $ conda create -n twaml python=3.6
+   $ cd /path/to/twaml
+   $ conda env create -f environment.yml
    $ conda activate twaml
-   $ conda install numpy matplotlib pandas scikit-learn pytables pytest h5py
-   $ pip install uproot
    $ conda install pytorch torchvision cuda100 -c pytorch ## requires recent nvidia linux drivers
    $ conda install tensorflow-gpu ## or just tensorflow
    $ pip install .

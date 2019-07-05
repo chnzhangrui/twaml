@@ -26,10 +26,11 @@ copyright = "2019, Doug Davis"
 author = "Doug Davis"
 
 # The short X.Y version
-version = ".".join(twaml.version.version.split(".")[:3])
+#version = ".".join(twaml.version.version.split(".")[:3])
+version = twaml.__version__
 
 # The full version, including alpha/beta/rc tags
-release = twaml.version.version
+release = twaml.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -42,14 +43,17 @@ release = twaml.version.version
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",
+    "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinxcontrib.programoutput",
-    "m2r",
+    "autodocsumm",
 ]
+
+set_type_checking_flag = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -76,36 +80,16 @@ language = None
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = "sphinx"
-
+pygments_style = "default"
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "alabaster"
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-# html_theme_options = {}
-
-html_theme_options = {
-    "page_width": "1000px",
-    "sidebar_width": "250px",
-    "github_user": "drdavis",
-    "github_repo": "twaml",
-    "github_count": False,
-    "github_type": "star",
-    "fixed_sidebar": True,
-    "show_powered_by": False,
-    "code_font_size": "0.8em",
-    # "head_font_family": '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
-    # "font_family": '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
-    "code_font_family": '"Fira Code", "Roboto Mono", monospace',
-}
+html_theme = "sphinx_rtd_theme"
+html_theme_options = {"collapse_navigation": False}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -218,4 +202,5 @@ autoclass_content = "both"
 intersphinx_mapping = {
     "python": ("http://docs.python.org/", None),
     "numpy": ("http://docs.scipy.org/doc/numpy", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
 }
