@@ -86,7 +86,7 @@ def root2pytables():
             auxweights=args.auxweights,
             detect_weights=args.detect_weights,
             nthreads=args.nthreads if args.nthreads > 1 else None,
-            wtloop_meta=True,
+            wtloop_meta=False,
         )
 
         selected_masks, sel_logics = full_ds.selection_masks(selection_yaml)
@@ -112,7 +112,7 @@ def root2pytables():
         detect_weights=args.detect_weights,
         nthreads=args.nthreads if args.nthreads > 1 else None,
         aggressively_strip=args.aggro_strip,
-        wtloop_meta=True,
+        wtloop_meta=False,
     )
     ds.to_pytables(args.out_file, to_hdf_kw=to_hdf_kw)
 

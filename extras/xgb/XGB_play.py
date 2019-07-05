@@ -6,8 +6,8 @@ from twaml.data import from_pytables
 from twaml.data import scale_weight_sum
 import matplotlib.pyplot as plt
 
-ttbar = dataset.from_pytables("ttbar_1j1b.h5", "ttbar", label=0)
-tW_DR = dataset.from_pytables("tW_DR_1j1b.h5", "tW_DR", label=1)
+ttbar = from_pytables("ttbar_1j1b.h5", "ttbar", label=0)
+tW_DR = from_pytables("tW_DR_1j1b.h5", "tW_DR", label=1)
 sow = ttbar.weights.sum() + tW_DR.weights.sum()
 mwfl = sow * 0.01
 scale_weight_sum(tW_DR, ttbar)
