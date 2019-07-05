@@ -1,16 +1,12 @@
 # import keras.backend as K
+import os
+os.environ['KERAS_BACKEND'] = 'theano'
 from keras.layers import Input, Dense
 from keras.models import Model
 from keras.optimizers import SGD
 from keras.utils.vis_utils import plot_model
 # from keras.layers.advanced_activations import LeakyReLU
 import keras.backend as K
-import os
-
-session_conf = tensorflow.ConfigProto(intra_op_parallelism_threads=6, inter_op_parallelism_threads=6)
-tensorflow.set_random_seed(1)
-session = tensorflow.Session(graph=tensorflow.get_default_graph(), config=session_conf)
-keras.backend.set_session(session)
 
 class DeepNet(object):
     ''' Define a deep forward neural network '''

@@ -14,14 +14,14 @@ class Batch(object):
 
         self.base_directory = base_directory + '/'
         self.para_train_sim = {'name': '2j2b',
-            'signal_h5': 'tW_DR_2j2b.h5',
-            'signal_name': 'tW_DR',
-            'signal_tree': 'wt_DR_nominal',
-            'backgd_h5': 'ttbar_2j2b.h5',
-            'backgd_name': 'ttbar',
-            'backgd_tree': 'tt_nominal',
-            'weight_name': 'weight_nominal',
-            'variables': ['mass_lep1jet2'],
+            'signal_h5': 'sig_zero_jet.h5',
+            'signal_name': 'sig',
+            'signal_tree': 'AppInputs',
+            'backgd_h5': 'bkg_zero_jet.h5',
+            'backgd_name': 'bkg',
+            'backgd_tree': 'AppInputs',
+            'weight_name': 'weight',
+            'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar'],
             }
         update_dict(self.para_train_sim, inputs)
 

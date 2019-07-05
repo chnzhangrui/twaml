@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
-from twaml.data import dataset
+from twaml.data import from_pytables
 from twaml.data import scale_weight_sum
 import matplotlib
 matplotlib.use('Agg')
@@ -10,16 +10,16 @@ import os
 
 class Train(object):
     def describe(self): return self.__class__.__name__
-    def __init__(self, name = '2j2b', base_directory = './', signal_h5 = 'tW_DR_2j2b.h5', signal_name = 'tW_DR_2j2b', signal_tree = 'wt_DR_nominal', signal_latex = r'$tW$',
-            backgd_h5 = 'ttbar_2j2b.h5', backgd_name = 'ttbar_2j2b', backgd_tree = 'tt_nominal', backgd_latex =  r'$t\bar{t}$', weight_name = 'EventWeight',
-            variables = ['mass_lep1jet2', 'mass_lep1jet1', 'deltaR_lep1_jet1', 'mass_lep2jet1', 'pTsys_lep1lep2met', 'pT_jet2', 'mass_lep2jet2'],
+    def __init__(self, name = 'zero_jet', base_directory = '../h5', signal_h5 = 'sig_one_jet.h5', signal_name = 'sig', signal_tree = 'wt_DR_nominal', signal_latex = r'H$\rightarraw\mu\mu$',
+            backgd_h5 = 'bkg_zero_jet.h5', backgd_name = 'bkg', backgd_tree = 'tt_nominal', backgd_latex =  r'Data sideband', weight_name = 'weight',
+            variables = ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar'],
             no_syssig = True, syssig_h5 = 'tW_DS_2j2b.h5', syssig_name = 'tW_DS_2j2b', syssig_tree = 'tW_DS', syssig_latex = r'$tW$ DS',
             ):
         self.name = name
         self.signal_label, self.backgd_label, self.center_label, self.syssig_label = 1, 0, 1, 0
         self.signal_latex, self.backgd_latex = signal_latex, backgd_latex
-        self.signal = dataset.from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.center_label)
-        self.backgd = dataset.from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label, auxlabel = self.center_label)
+        self.signal = from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.center_label)
+        self.backgd = from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label, auxlabel = self.center_label)
         self.signal.keep_columns(variables)
         self.backgd.keep_columns(variables)
         self.no_syssig = no_syssig
@@ -28,7 +28,7 @@ class Train(object):
         self.losses_train = {'L_gen': [], 'L_dis': [], 'L_diff': []}
 
         if not self.no_syssig:
-            self.syssig = dataset.from_pytables(syssig_h5, syssig_name, tree_name = syssig_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.syssig_label)
+            self.syssig = from_pytables(syssig_h5, syssig_name, tree_name = syssig_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.syssig_label)
             self.syssig.keep_columns(variables)
 
             # Append syssig to signal
@@ -38,14 +38,15 @@ class Train(object):
         scale_weight_sum(self.signal, self.backgd)
 
         self.X = np.concatenate([self.signal.df.to_numpy(), self.backgd.df.to_numpy()])
-        self.y = np.concatenate([self.signal.label_asarray, self.backgd.label_asarray])
-        self.z = np.concatenate([self.signal.auxlabel_asarray, self.backgd.auxlabel_asarray])
+        self.y = np.concatenate([self.signal.label_asarray(), self.backgd.label_asarray()])
+        self.z = np.concatenate([self.signal.auxlabel_asarray(), self.backgd.auxlabel_asarray()])
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
 
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
-        print(self.describe(), self.signal.df.__getitem__)
+        print('[INFO]', self.describe(), self.signal.df.__getitem__)
+        print('[INFO]', '-'*20)
 
     @property
     def shape(self):
