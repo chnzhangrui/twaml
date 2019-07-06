@@ -10,7 +10,7 @@ import os
 
 class Train(object):
     def describe(self): return self.__class__.__name__
-    def __init__(self, name = 'zero_jet', base_directory = '../h5', signal_h5 = 'sig_one_jet.h5', signal_name = 'sig', signal_tree = 'wt_DR_nominal', signal_latex = r'H$\rightarraw\mu\mu$',
+    def __init__(self, name = 'zero_jet', base_directory = '../h5', signal_h5 = 'sig_one_jet.h5', signal_name = 'sig', signal_tree = 'wt_DR_nominal', signal_latex = r'H$\rightarrow\mu\mu$',
             backgd_h5 = 'bkg_zero_jet.h5', backgd_name = 'bkg', backgd_tree = 'tt_nominal', backgd_latex =  r'Data sideband', weight_name = 'weight',
             variables = ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar'],
             no_syssig = True, syssig_h5 = 'tW_DS_2j2b.h5', syssig_name = 'tW_DS_2j2b', syssig_tree = 'tW_DS', syssig_latex = r'$tW$ DS',
@@ -45,7 +45,7 @@ class Train(object):
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
-        print('[INFO]', self.describe(), self.signal.df.__getitem__)
+        print('[INFO]', self.describe(), self.signal.df.__getitem__, self.backgd.df.__getitem__)
         print('[INFO]', '-'*20)
 
     @property

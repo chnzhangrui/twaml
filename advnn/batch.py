@@ -29,7 +29,7 @@ class Batch(object):
             'name': 'simple',
             'nfold': 3,
             'train_fold': 0,
-            'epochs': 500,
+            'epochs': 20,
             'hidden_Nlayer': 10,
             'hidden_Nnode': 100,
             'lr': 0.03,
@@ -54,7 +54,7 @@ class Batch(object):
             'hidden_auxNlayer': 2,
             'hidden_auxNnode': 5,
             'preTrain_epochs': 20,
-            'n_iteraction': 500,
+            'n_iteraction': 100,
             'lam': 10,
         }
         update_dict(self.para_net_Adv, inputs)
@@ -137,11 +137,15 @@ class Batch(object):
 
             return '\n'.join(l[8:] for l in """
         #!/bin/bash
-        source /cephfs/user/rzhang/Wtr21/setup_twaml.sh
+        scl enable rh-python36 bash << EOF
+        source ~/.bashrc
+        conda activate twaml
+        conda activate twaml
         dest={base_directory}
+        source $dest..//.venvs/twaml-venv/bin/activate
         python {program}/submit.py {mode} _run $*
-        \cp -r job__* $dest/
         unset dest
+        EOF
         """.split('\n')[1:]).format(
                 base_directory = self.base_directory,
                 program = os.path.dirname(os.path.abspath(__file__)),
