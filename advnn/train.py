@@ -1,4 +1,5 @@
 import numpy as np
+import keras
 from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
 from twaml.data import from_pytables
@@ -79,9 +80,10 @@ class Train(object):
         '''
         self.epochs = epochs
         self.fold = fold
+        checkpoint = keras.callbacks.ModelCheckpoint(self.output_path + self.name + '_model_{epoch:04d}.h5', period=int(self.epochs/10.)) 
         if mode == 0:
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
-                    validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs)
+                    validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=[checkpoint])
         elif mode == 1:
             assert (not self.no_syssig)
             return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
@@ -101,6 +103,7 @@ class Train(object):
             loss_train = self.network.evaluate(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], verbose=0)
             loss_test = self.network.evaluate(self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], sample_weight = [self.w_test[self.fold], self.w_test[self.fold]], verbose=0)
             return loss_train, loss_test
+
 
     def plotLoss(self, result):
         ''' Plot loss functions '''
@@ -183,13 +186,6 @@ class Train(object):
         self.losses_train['L_gen'].append(loss_train[1][None][0])
         self.losses_train['L_dis'].append(-loss_train[2][None][0])
         self.losses_train['L_diff'].append(loss_train[0][None][0])
-
-        # self.losses_test['L_gen'].append(0.000001)
-        # self.losses_test['L_dis'].append(0.000002)
-        # self.losses_test['L_diff'].append(0.000003)
-        # self.losses_train['L_gen'].append(0.00004)
-        # self.losses_train['L_dis'].append(0.00005)
-        # self.losses_train['L_diff'].append(0.00006)
 
         def plot_twolosses():
             idxes = ['L_gen', 'L_dis', 'L_diff']

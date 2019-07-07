@@ -15,6 +15,7 @@ Python tooling for :math:`tW`.
    cli.rst
    api.rst
    tests.rst
+   advnn.rst
 
 .. Indices and tables
 .. ==================

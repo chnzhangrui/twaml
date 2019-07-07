@@ -1,6 +1,6 @@
 # import keras.backend as K
 import os
-os.environ['KERAS_BACKEND'] = 'theano'
+#os.environ['KERAS_BACKEND'] = 'theano'
 from keras.layers import Input, Dense
 from keras.models import Model
 from keras.optimizers import SGD
