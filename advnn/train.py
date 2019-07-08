@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
+from sklearn.preprocessing import StandardScaler
 
 class Train(object):
     def describe(self): return self.__class__.__name__
@@ -37,8 +38,9 @@ class Train(object):
 
         # Equalise signal weights to background weights
         scale_weight_sum(self.signal, self.backgd)
-
-        self.X = np.concatenate([self.signal.df.to_numpy(), self.backgd.df.to_numpy()])
+        self.X_raw = np.concatenate([self.signal.df.to_numpy(), self.backgd.df.to_numpy()])
+        scaler = StandardScaler()
+        self.X = scaler.fit_transform(self.X_raw)
         self.y = np.concatenate([self.signal.label_asarray(), self.backgd.label_asarray()])
         self.z = np.concatenate([self.signal.auxlabel_asarray(), self.backgd.auxlabel_asarray()])
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
