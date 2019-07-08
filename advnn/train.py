@@ -9,6 +9,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 from sklearn.preprocessing import StandardScaler
+import pickle
+
 
 class Train(object):
     def describe(self): return self.__class__.__name__
@@ -50,6 +52,10 @@ class Train(object):
             os.makedirs(self.output_path)
         print('[INFO]', self.describe(), self.signal.df.__getitem__, self.backgd.df.__getitem__)
         print('[INFO]', '-'*20)
+
+        #store the content
+        with open(self.output_path + self.name + '_event.pkl', 'wb') as pkl:
+            pickle.dump(scaler, pkl)
 
     @property
     def shape(self):
