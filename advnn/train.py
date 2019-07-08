@@ -83,6 +83,11 @@ class Train(object):
         self.epochs = epochs
         self.fold = fold
         checkpoint = keras.callbacks.ModelCheckpoint(self.output_path + self.name + '_model_{epoch:04d}.h5', period=int(self.epochs/10.)) 
+        # serialize model to JSON
+        model_json = self.network.to_json()
+        with open(self.output_path + self.name + '_model.json', 'w') as json_file:
+            json_file.write(model_json)
+
         if mode == 0:
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                     validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=[checkpoint])
