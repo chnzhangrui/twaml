@@ -80,6 +80,8 @@ class Batch(object):
                     Request_cpus            = {req_cores}
                     # Disk space in kiB, if no unit is specified!
                     Request_disk            = 4 GB
+                    +JobFlavour             = "workday"
+                    +AccountingGroup        = "group_u_ATLASWISC.all"
                     # Specify job input and output
                     Error                   = {log}/err.$(ClusterId).$(Process)
                     Output                  = {log}/out.$(ClusterId).$(Process)
