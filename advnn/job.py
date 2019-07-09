@@ -4,7 +4,7 @@ import os
 
 class Job(object):
     def describe(self): return self.__class__.__name__
-    def __init__(self, name, nfold, train_fold, epochs, hidden_Nlayer, hidden_Nnode, lr, momentum, output, activation, para_train={}):
+    def __init__(self, name, nfold, train_fold, epochs, hidden_Nlayer, hidden_Nnode, lr, momentum, output, activation, dropout_rate, para_train={}):
         self.nfold = int(nfold)
         self.train_fold = int(train_fold)
         self.epochs = int(epochs)
@@ -13,7 +13,8 @@ class Job(object):
         self.lr = float(lr)
         self.momentum = float(momentum)
         self.activation = activation
-        self.output = 'job__l{}n{}_lr{}mom{}_{}_k{}_e{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.epochs) if output is None else output
+        self.dropout_rate = float(dropout_rate)
+        self.output = 'job__l{}n{}_lr{}mom{}_{}_k{}_dp{}_e{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.dropout_rate, self.epochs) if output is None else output
         self.name = self.output if name is None else name
 
         self.para_train = para_train
@@ -26,7 +27,7 @@ class Job(object):
         self.trainer.split(nfold = self.nfold)
 
         ''' An instance of DeepNet for network construction and pass it to Train '''
-        self.deepnet = DeepNet(name = self.name, build_dis = False, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation)
+        self.deepnet = DeepNet(name = self.name, build_dis = False, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode, hidden_activation = self.activation, dropout_rate = self.dropout_rate)
         self.deepnet.build(input_dimension = self.trainer.shape, lr = self.lr, momentum = self.momentum)
         self.deepnet.plot(base_directory = self.output)
         self.trainer.setNetwork(self.deepnet.generator)

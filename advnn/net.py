@@ -1,7 +1,7 @@
 # import keras.backend as K
 import os
 #os.environ['KERAS_BACKEND'] = 'theano'
-from keras.layers import Input, Dense
+from keras.layers import Input, Dense, Dropout
 from keras.models import Model
 from keras.optimizers import SGD
 from keras.utils.vis_utils import plot_model
@@ -12,7 +12,7 @@ class DeepNet(object):
     ''' Define a deep forward neural network '''
 
     def describe(self): return self.__class__.__name__
-    def __init__(self, name, build_dis, hidden_Nlayer, hidden_Nnode, hidden_activation, output_activation = 'sigmoid'):
+    def __init__(self, name, build_dis, hidden_Nlayer, hidden_Nnode, dropout_rate, hidden_activation, output_activation = 'sigmoid'):
         self.name = name
         self.build_dis = build_dis
         self.hidden_Nlayer = hidden_Nlayer
@@ -20,6 +20,7 @@ class DeepNet(object):
         self.hidden_Nnode = hidden_Nnode
         self.hidden_activation = hidden_activation
         self.output_activation = output_activation
+        self.dropout_rate = dropout_rate
 
     @staticmethod
     def make_trainable(network, flag):
@@ -37,6 +38,8 @@ class DeepNet(object):
         self.output_GLayers = Dense(self.hidden_Nnode, activation = self.hidden_activation, name = self.name + '_layer1')(self.input_GLayer)
         for i in range(self.hidden_Nlayer - 1):
             self.output_GLayers = Dense(self.hidden_Nnode, activation = self.hidden_activation, name = self.name + '_layer' + str(i+2))(self.output_GLayers)
+            if self.dropout_rate != 0:
+                self.output_GLayers = Dropout(self.dropout_rate)(self.output_GLayers)
         # Output layer
         self.output_GLayers = Dense(1, activation = self.output_activation, name = self.name + '_output')(self.output_GLayers)
         # Define model with above layers

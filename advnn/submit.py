@@ -32,10 +32,11 @@ if __name__ == '__main__':
 
     ''' Grid search '''
     job_array = {
-        'hidden_Nlayer': ['3', '5', '10'],
+        'hidden_Nlayer': ['5', '10'],
         'hidden_Nnode': ['10', '30', '50'],
-        'lr': ['0.001', '0.0005'],
+        'lr': ['0.001'],
         'activation': ['elu'],
+        'dropout_rate': ['0.2', '0.5'],
     }
 
     if args.command == '_run':

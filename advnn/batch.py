@@ -36,6 +36,7 @@ class Batch(object):
             'momentum': 0.8,
             'output': None,
             'activation': 'elu',
+            'dropout_rate': '0.0',
             }
         update_dict(self.para_net_sim, inputs)
 
