@@ -143,7 +143,7 @@ class Batch(object):
         source ~/.bashrc
         conda activate twaml
         dest={base_directory}
-        source $dest../.venvs/twaml-venv/bin/activate
+        source $dest../.venvs/twaml-venv-lxpus7/bin/activate
         python {program}/submit.py {mode} _run $*
         \cp -r job__* $dest/
         unset dest

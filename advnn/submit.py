@@ -20,10 +20,11 @@ if __name__ == '__main__':
     base_directory = os.getcwd()
     
     inputs = {'name': '0j',
-        'signal_h5': '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/sig_zero_jet.h5',
-        'backgd_h5': '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/bkg_zero_jet.h5',
+        'signal_h5': '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low/sig_zero_jet.h5',
+        'backgd_h5': '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low/bkg_zero_jet.h5',
         'syssig_h5': '/cephfs/user/rzhang/Wtr21/run/v28/h5files/tW_DS_2j2b.h5',
-        'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar'],
+        #'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar'],
+        'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead', 'Muons_PT_Sub', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],
     }
 
     jobname = sys.argv[1]
@@ -34,7 +35,7 @@ if __name__ == '__main__':
     job_array = {
         'hidden_Nlayer': ['5', '10'],
         'hidden_Nnode': ['10', '30', '50'],
-        'lr': ['0.001'],
+        'lr': ['0.001', '0.005'],
         'activation': ['elu'],
         'dropout_rate': ['0.2', '0.5'],
     }
