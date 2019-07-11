@@ -16,8 +16,9 @@ class Train(object):
     def describe(self): return self.__class__.__name__
     def __init__(self, name = 'zero_jet', base_directory = '../h5', signal_h5 = 'sig_one_jet.h5', signal_name = 'sig', signal_tree = 'wt_DR_nominal', signal_latex = r'H$\rightarrow\mu\mu$',
             backgd_h5 = 'bkg_zero_jet.h5', backgd_name = 'bkg', backgd_tree = 'tt_nominal', backgd_latex =  r'Data sideband', weight_name = 'weight',
-            variables = ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar'],
-            no_syssig = True, syssig_h5 = 'tW_DS_2j2b.h5', syssig_name = 'tW_DS_2j2b', syssig_tree = 'tW_DS', syssig_latex = r'$tW$ DS',
+            variables = ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar', 'm_mumu'],
+            has_syst = False, syssig_h5 = 'tW_DS_2j2b.h5', syssig_name = 'tW_DS_2j2b', syssig_tree = 'tW_DS', syssig_latex = r'$tW$ DS',
+            has_mass = True, reg_variable = 'm_mumu', reg_latex = r'm_\mu\mu',
             ):
         self.name = name
         self.signal_label, self.backgd_label, self.center_label, self.syssig_label = 1, 0, 1, 0
@@ -26,17 +27,21 @@ class Train(object):
         self.backgd = from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label, auxlabel = self.center_label)
         self.signal.keep_columns(variables)
         self.backgd.keep_columns(variables)
-        self.no_syssig = no_syssig
-        self.syssig_latex = None if self.no_syssig else syssig_latex
+        self.has_syst = has_syst
+        self.syssig_latex = None if not self.has_syst else syssig_latex
         self.losses_test = {'L_gen': [], 'L_dis': [], 'L_diff': []}
         self.losses_train = {'L_gen': [], 'L_dis': [], 'L_diff': []}
+        self.has_mass = has_mass
+        self.reg_variable = reg_variable
+        self.reg_latex = reg_latex
 
-        if not self.no_syssig:
+        if self.has_syst:
             self.syssig = from_pytables(syssig_h5, syssig_name, tree_name = syssig_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.syssig_label)
             self.syssig.keep_columns(variables)
 
             # Append syssig to signal
             self.signal.append(self.syssig)
+
 
         # Equalise signal weights to background weights
         scale_weight_sum(self.signal, self.backgd)
@@ -45,6 +50,12 @@ class Train(object):
         self.X = scaler.fit_transform(self.X_raw)
         self.y = np.concatenate([self.signal.label_asarray(), self.backgd.label_asarray()])
         self.z = np.concatenate([self.signal.auxlabel_asarray(), self.backgd.auxlabel_asarray()])
+        if self.has_mass:
+            signal = from_pytables(signal_h5, signal_name, tree_name = signal_tree, weight_name = weight_name, label = self.signal_label, auxlabel = self.center_label)
+            backgd = from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label, auxlabel = self.center_label)
+            signal.keep_columns([reg_variable])
+            backgd.keep_columns([reg_variable])
+            self.z = np.concatenate([signal.df.to_numpy(), backgd.df.to_numpy()])
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
 
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
@@ -98,18 +109,18 @@ class Train(object):
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                     validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=[checkpoint])
         elif mode == 1:
-            assert (not self.no_syssig)
+            assert (self.has_syst)
             return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                     validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = 1)
 
         elif mode == 2:
-            assert (not self.no_syssig)
+            assert (self.has_syst)
             return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
                     validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs)
 
     def evaluate(self):
-        print('Evaluating ...', self.no_syssig, self.name)
-        if self.no_syssig:
+        print('Evaluating ...', self.has_syst, self.name)
+        if not self.has_syst:
             self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
             self.network.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
         else:
@@ -189,7 +200,7 @@ class Train(object):
 
 
     def plotIteration(self, it):
-        if self.no_syssig:
+        if not self.has_syst:
             return
 
         loss_train, loss_test = self.evaluate()

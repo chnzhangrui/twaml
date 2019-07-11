@@ -42,7 +42,7 @@ class Batch(object):
 
         self.para_train_Adv = {**self.para_train_sim,
             'name': 'NP',
-            'no_syssig': False,
+            'has_syst': True,
             'syssig_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5files/tW_DS_2j2b.h5',
             'syssig_name': 'tW_DS',
             'syssig_tree': 'wt_DS',

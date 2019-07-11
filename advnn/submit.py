@@ -20,8 +20,8 @@ if __name__ == '__main__':
     base_directory = os.getcwd()
     
     inputs = {'name': '0j',
-        'signal_h5': '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low/sig_zero_jet.h5',
-        'backgd_h5': '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low/bkg_zero_jet.h5',
+        'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5/low-withmass/sig_zero_jet.h5',
+        'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5/low-withmass/bkg_zero_jet.h5',
         'syssig_h5': '/cephfs/user/rzhang/Wtr21/run/v28/h5files/tW_DS_2j2b.h5',
         #'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar'],
         'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead', 'Muons_PT_Sub', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],

@@ -1,4 +1,4 @@
-from net import DeepNet, AdvNet
+from net import DeepNet, AdvNet, AdvReg
 from train import Train
 import os
 
@@ -80,6 +80,66 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.setNetwork(self.advnet.discriminator)
+            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
+
+        self.output_path = '/'.join([self.output, self.describe()]) + '/'
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
+        ''' Iterative training '''
+        for i in range(self.n_iteraction):
+
+            AdvNet.make_trainable(self.advnet.generator, True)
+            AdvNet.make_trainable(self.advnet.discriminator, False)
+            self.trainer.setNetwork(self.advnet.adversary)
+            self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
+
+            self.trainer.plotIteration(i)
+            if not i % 5:
+                self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
+
+            AdvNet.make_trainable(self.advnet.generator, False)
+            AdvNet.make_trainable(self.advnet.discriminator, True)
+            self.trainer.setNetwork(self.advnet.discriminator)
+            self.result = self.trainer.train(mode = 1, epochs = self.epochs, fold = self.train_fold)
+
+        self.trainer.setNetwork(self.advnet.adversary)
+        self.trainer.saveLoss()
+        self.trainer.setNetwork(self.advnet.generator)
+        self.trainer.plotResults()
+
+class JobAdvReg(Job):
+    def __init__(self, preTrain_epochs, hidden_auxNlayer, hidden_auxNnode, n_iteraction, lam, *args, **kwargs):
+        super(self.__class__, self).__init__(*args, **kwargs)
+        self.preTrain_epochs = int(preTrain_epochs)
+        self.hidden_auxNlayer = int(hidden_auxNlayer)
+        self.hidden_auxNnode = int(hidden_auxNnode)
+        self.n_iteraction = int(n_iteraction)
+        self.lam = float(lam)
+        self.output = '{}__E{}_L{}N{}_it{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.n_iteraction, self.lam)
+        self.para_train['base_directory'] = self.output
+        
+    def run(self):
+
+        ''' An instance of Train for data handling '''
+        self.trainer = Train(**self.para_train)
+        self.trainer.split(nfold = self.nfold)
+
+        ''' An instance of AdvReg for network construction and pass it to Train '''
+        self.advreg = AdvReg(name = self.name, build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode,
+            hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode)
+        self.advreg.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, momentum = self.momentum)
+        self.advreg.plot(base_directory = self.output)
+    
+        ''' pre-training '''
+        if self.preTrain_epochs != 0:
+            AdvNet.make_trainable(self.advreg.generator, True)
+            AdvNet.make_trainable(self.advreg.discriminator, False)
+            self.trainer.setNetwork(self.advreg.generator)
+            self.result = self.trainer.train(mode = 0, epochs = self.preTrain_epochs, fold = self.train_fold)
+
+            AdvNet.make_trainable(self.advreg.generator, False)
+            AdvNet.make_trainable(self.advreg.discriminator, True)
+            self.trainer.setNetwork(self.advreg.discriminator)
             self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
 
         self.output_path = '/'.join([self.output, self.describe()]) + '/'
