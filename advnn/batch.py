@@ -1,4 +1,4 @@
-from job import Job, JobAdv, JobAdvReg
+from job import Job, JobAdv
 import itertools    
 from itertools import chain
 import os
@@ -69,7 +69,7 @@ class Batch(object):
         update_dict(self.para_train_AdvReg, inputs)
 
         self.para_net_AdvReg = {**self.para_net_sim,
-            'name': 'ANNreg',
+            'name': 'ANNReg',
             'epochs': 2,
             'hidden_auxNlayer': 2,
             'hidden_auxNnode': 5,
@@ -138,7 +138,7 @@ class Batch(object):
                 yield dict(zip(keys, instance))
                 
         settings = list(product_dict(**job_array))
-        print('zhangr', local_run, self.jobname, settings)
+        print('[INFO]', len(settings), 'jobs will be created.')
         for setting in settings:
             if not local_run:
                 with open(self.htcjdl, 'a+') as f:
@@ -148,11 +148,10 @@ class Batch(object):
                 update_dict(self.para_net_Adv, setting)
                 job = JobAdv(**self.para_net_Adv, para_train = self.para_train_Adv)
                 job.run()
-            elif self.jobname == 'ANNreg':
+            elif self.jobname == 'ANNReg':
                 # If local run adversarial neural network
-                print('zhangr settings', self.para_net_AdvReg, setting)
                 update_dict(self.para_net_AdvReg, setting)
-                job = JobAdvReg(**self.para_net_AdvReg, para_train = self.para_train_AdvReg)
+                job = JobAdv(**self.para_net_AdvReg, para_train = self.para_train_AdvReg)
                 job.run()
             else:
                 update_dict(self.para_net_sim, setting)
@@ -188,7 +187,7 @@ class Batch(object):
             update_dict(self.para_net_Adv, setting)
             job = JobAdv(**self.para_net_Adv, para_train = self.para_train_Adv)
             job.run()
-        elif self.jobname == 'ANNreg':
+        elif self.jobname == 'ANNReg':
             update_dict(self.para_net_AdvReg, setting)
             job = JobAdv(**self.para_net_AdvReg, para_train = self.para_train_AdvReg)
             job.run()

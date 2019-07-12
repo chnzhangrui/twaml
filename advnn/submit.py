@@ -32,13 +32,33 @@ if __name__ == '__main__':
     args = parse_options(sys.argv[2:])
 
     ''' Grid search '''
-    job_array = {
+    DNN_job_array = {
         'hidden_Nlayer': ['5', '10'],
         'hidden_Nnode': ['10', '30', '50'],
         'lr': ['0.001', '0.005'],
         'activation': ['elu'],
         'dropout_rate': ['0.2', '0.5'],
     }
+    ANN_job_array = {
+        'hidden_Nlayer': ['5', '10'],
+        'hidden_Nnode': ['10', '30', '50'],
+        'lr': ['0.001', '0.005'],
+        'activation': ['elu'],
+        'dropout_rate': ['0.2', '0.5'],
+        'preTrain_epochs': ['20'],
+        'hidden_auxNlayer': ['2', '5'],
+        'hidden_auxNnode': ['10', '20'],
+        'n_iteraction': ['50', '100'],
+        'lam': ['1', '10', '100'],
+    }
+
+    if jobname == 'DNN':
+        job_array = DNN_job_array
+    elif jobname == 'ANN' or jobname == 'ANNReg':
+        job_array = ANN_job_array
+    else:
+        raise RuntimeError('Unknown job name: {}'.format(jobname))
+
 
     if args.command == '_run':
         batch._run(args._run)
