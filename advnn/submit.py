@@ -26,6 +26,9 @@ if __name__ == '__main__':
         #'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar'],
         'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead', 'Muons_PT_Sub', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],
     }
+    if 'lxplus' in os.uname()[1]:
+        inputs['signal_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-withmass/sig_zero_jet.h5'
+        inputs['backgd_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-withmass/bkg_zero_jet.h5'
 
     jobname = sys.argv[1]
     batch = Batch(jobname, base_directory, inputs)
@@ -40,15 +43,16 @@ if __name__ == '__main__':
         'dropout_rate': ['0.2', '0.5'],
     }
     ANN_job_array = {
-        'hidden_Nlayer': ['5', '10'],
-        'hidden_Nnode': ['10', '30', '50'],
-        'lr': ['0.001', '0.005'],
+        'hidden_Nlayer': ['5'],
+        'hidden_Nnode': ['50'],
+        'lr': ['0.005'],
         'activation': ['elu'],
-        'dropout_rate': ['0.2', '0.5'],
+        'dropout_rate': ['0.2'],
         'preTrain_epochs': ['20'],
         'hidden_auxNlayer': ['2', '5'],
         'hidden_auxNnode': ['10', '20'],
         'n_iteraction': ['50', '100'],
+        'epochs': ['1', '2'],
         'lam': ['1', '10', '100'],
     }
 

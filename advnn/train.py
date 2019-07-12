@@ -112,7 +112,6 @@ class Train(object):
             assert (self.has_syst or self.has_mass)
             return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                 validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = 1)
-
         elif mode == 2:
             assert (self.has_syst or self.has_mass)
             return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
