@@ -1,4 +1,4 @@
-from job import Job, JobAdv
+from job import Job, JobAdv, JobAdvReg
 import itertools    
 from itertools import chain
 import os
@@ -60,6 +60,25 @@ class Batch(object):
         }
         update_dict(self.para_net_Adv, inputs)
 
+        self.para_train_AdvReg = {**self.para_train_sim,
+            'name': 'Mass',
+            'has_mass': True,
+            'reg_variable': 'm_mumu',
+            'reg_latex': r'm_\mu\mu',
+            }
+        update_dict(self.para_train_AdvReg, inputs)
+
+        self.para_net_AdvReg = {**self.para_net_sim,
+            'name': 'ANNreg',
+            'epochs': 2,
+            'hidden_auxNlayer': 2,
+            'hidden_auxNnode': 5,
+            'preTrain_epochs': 20,
+            'n_iteraction': 100,
+            'lam': 10,
+        }
+        update_dict(self.para_net_AdvReg, inputs)
+
         self.wrappe = self.base_directory + self.jobname + '_wrap.sh'
         self.htcjdl = self.base_directory + self.jobname + '_htc.jdl'
 
@@ -119,6 +138,7 @@ class Batch(object):
                 yield dict(zip(keys, instance))
                 
         settings = list(product_dict(**job_array))
+        print('zhangr', local_run, self.jobname, settings)
         for setting in settings:
             if not local_run:
                 with open(self.htcjdl, 'a+') as f:
@@ -127,6 +147,12 @@ class Batch(object):
                 # If local run adversarial neural network
                 update_dict(self.para_net_Adv, setting)
                 job = JobAdv(**self.para_net_Adv, para_train = self.para_train_Adv)
+                job.run()
+            elif self.jobname == 'ANNreg':
+                # If local run adversarial neural network
+                print('zhangr settings', self.para_net_AdvReg, setting)
+                update_dict(self.para_net_AdvReg, setting)
+                job = JobAdvReg(**self.para_net_AdvReg, para_train = self.para_train_AdvReg)
                 job.run()
             else:
                 update_dict(self.para_net_sim, setting)
@@ -161,6 +187,10 @@ class Batch(object):
         if self.jobname == 'ANN':
             update_dict(self.para_net_Adv, setting)
             job = JobAdv(**self.para_net_Adv, para_train = self.para_train_Adv)
+            job.run()
+        elif self.jobname == 'ANNreg':
+            update_dict(self.para_net_AdvReg, setting)
+            job = JobAdv(**self.para_net_AdvReg, para_train = self.para_train_AdvReg)
             job.run()
         else:
             update_dict(self.para_net_sim, setting)

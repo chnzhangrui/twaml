@@ -66,7 +66,7 @@ class JobAdv(Job):
 
         ''' An instance of AdvNet for network construction and pass it to Train '''
         self.advnet = AdvNet(name = self.name, build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode,
-            hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode)
+            hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode, dropout_rate = self.dropout_rate)
         self.advnet.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, momentum = self.momentum)
         self.advnet.plot(base_directory = self.output)
     
@@ -126,7 +126,7 @@ class JobAdvReg(Job):
 
         ''' An instance of AdvReg for network construction and pass it to Train '''
         self.advreg = AdvReg(name = self.name, build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode,
-            hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode)
+            hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode, dropout_rate = self.dropout_rate)
         self.advreg.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, momentum = self.momentum)
         self.advreg.plot(base_directory = self.output)
     

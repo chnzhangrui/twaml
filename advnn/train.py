@@ -109,13 +109,19 @@ class Train(object):
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                     validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=[checkpoint])
         elif mode == 1:
-            assert (self.has_syst)
-            return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
+            assert (self.has_syst or self.has_mass)
+            if self.has_mass:
+                return self.network.fit(self.X_train[self.fold], self.z_train[self.fold])
+            else:
+                return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                     validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = 1)
 
         elif mode == 2:
-            assert (self.has_syst)
-            return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
+            assert (self.has_syst or self.has_mass)
+            if self.has_mass:
+                return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]])
+            else:
+                return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
                     validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs)
 
     def evaluate(self):

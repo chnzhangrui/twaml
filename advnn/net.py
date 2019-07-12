@@ -81,6 +81,8 @@ class AdvNet(DeepNet):
         self.output_GLayers = Dense(self.hidden_Nnode, activation = self.hidden_activation, name = self.name + '_Gen_l1')(self.input_GLayer)
         for i in range(self.hidden_Nlayer - 1):
             self.output_GLayers = Dense(self.hidden_Nnode, activation = self.hidden_activation, name = self.name + '_Gen_l' + str(i+2))(self.output_GLayers)
+            if self.dropout_rate != 0:
+                self.output_GLayers = Dropout(self.dropout_rate)(self.output_GLayers)
         # Output layer
         self.output_GLayers = Dense(1, activation = self.output_activation, name = self.name + '_Gen_output')(self.output_GLayers)
         # Define model with above layers
@@ -128,6 +130,8 @@ class AdvReg(DeepNet):
         self.output_GLayers = Dense(self.hidden_Nnode, activation = self.hidden_activation, name = self.name + '_Gen_l1')(self.input_GLayer)
         for i in range(self.hidden_Nlayer - 1):
             self.output_GLayers = Dense(self.hidden_Nnode, activation = self.hidden_activation, name = self.name + '_Gen_l' + str(i+2))(self.output_GLayers)
+            if self.dropout_rate != 0:
+                self.output_GLayers = Dropout(self.dropout_rate)(self.output_GLayers)
         # Output layer
         self.output_GLayers = Dense(1, activation = self.output_activation, name = self.name + '_Gen_output')(self.output_GLayers)
         # Define model with above layers
@@ -150,8 +154,7 @@ class AdvReg(DeepNet):
         regressor = Model(inputs=[self.input_GLayer], outputs=[self.output_DLayers], name = self.name + '_Dis')
         regressor.compile(loss = 'mean_squared_error', optimizer = 'adam', metrics=['mae', 'accuracy'])
 
-        #self.discriminator = KerasRegressor(build_fn=regressor, batch_size=512, epochs=100)
-        self.discriminator = KerasRegressor(build_fn=regressor)
+        self.discriminator = KerasRegressor(build_fn=regressor, batch_size=512, epochs=100).model
 
         self.adversary = Model(inputs=[self.input_GLayer], outputs=[self.generator(self.input_GLayer), self.discriminator(self.input_GLayer)])
 
