@@ -61,8 +61,8 @@ class Train(object):
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
-        print('[INFO]', self.describe(), self.signal.df.__getitem__, self.backgd.df.__getitem__)
-        print('[INFO]', '-'*20)
+        print('\033[92m[INFO]\033[0m', self.describe(), self.signal.df.__getitem__, self.backgd.df.__getitem__)
+        print('\033[92m[INFO]\033[0m', '-'*20)
 
         #store the content
         with open(self.output_path + self.name + '_event.pkl', 'wb') as pkl:
@@ -99,27 +99,30 @@ class Train(object):
         '''
         self.epochs = epochs
         self.fold = fold
-        checkpoint = keras.callbacks.ModelCheckpoint(self.output_path + self.name + '_model_{epoch:04d}.h5', period=int(self.epochs/10.)) 
-        # serialize model to JSON
-        model_json = self.network.to_json()
-        with open(self.output_path + self.name + '_model.json', 'w') as json_file:
-            json_file.write(model_json)
 
         if mode == 0:
+            checkpoint = keras.callbacks.ModelCheckpoint(self.output_path + self.name + '_model_{epoch:04d}.h5', period=int(self.epochs/10.)) 
+            # serialize model to JSON
+            model_json = self.network.to_json()
+            with open(self.output_path + self.name + '_model.json', 'w') as json_file:
+                json_file.write(model_json)
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                 validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=[checkpoint])
         elif mode == 1:
+            return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
+                validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs)
+        elif mode == 2:
             assert (self.has_syst or self.has_mass)
             return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
                 validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = 1)
-        elif mode == 2:
+        elif mode == 3:
             assert (self.has_syst or self.has_mass)
             return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
                 validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs)
 
-    def evaluate(self):
-        print('Evaluating ...', self.has_syst, self.name)
-        if not self.has_syst:
+    def evaluate(self, simple = True):
+        print('Evaluating ...', self.has_syst or self.has_mass, self.name)
+        if simple:
             self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
             self.network.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
         else:
@@ -199,10 +202,10 @@ class Train(object):
 
 
     def plotIteration(self, it):
-        if not self.has_syst:
+        if not (self.has_syst or self.has_mass):
             return
 
-        loss_train, loss_test = self.evaluate()
+        loss_train, loss_test = self.evaluate(False)
         self.losses_test['L_gen'].append(loss_test[1][None][0])
         self.losses_test['L_dis'].append(-loss_test[2][None][0])
         self.losses_test['L_diff'].append(loss_test[0][None][0])
@@ -225,10 +228,10 @@ class Train(object):
 
             plt.xlabel('Number of iterations', horizontalalignment='left', fontsize='large')
             plt.subplots_adjust(left=0.18, right=0.95, top=0.95, hspace = 0.4)
-            plt.savefig(self.output_path + self.name + '_iter.pdf', format = 'pdf')
+            plt.savefig(self.output_path + self.name + '_iter_' + str(it) + '.pdf', format = 'pdf')
             plt.clf()
 
-        if not it % 2:
+        if not it % 1:
             plot_twolosses()
 
     def saveLoss(self):

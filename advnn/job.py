@@ -72,15 +72,22 @@ class JobAdv(Job):
     
         ''' pre-training '''
         if self.preTrain_epochs != 0:
+            print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator with epochs\033[0m', self.preTrain_epochs)
             AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
             self.trainer.setNetwork(self.advnet.generator)
-            self.result = self.trainer.train(mode = 0, epochs = self.preTrain_epochs, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
+            self.trainer.evaluate()
+            self.trainer.plotLoss(self.result)
+            self.trainer.plotResults()
 
+            print('\033[92m[INFO]\033[0m', '\033[92mpre-training generator with epochs\033[0m', self.preTrain_epochs)
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold)
+        else:
+            print('\033[91m[INFO]\033[0m', '\033[91mpre-training skipped!\033[0m')
 
         self.output_path = '/'.join([self.output, self.describe()]) + '/'
         if not os.path.exists(self.output_path):
@@ -88,81 +95,26 @@ class JobAdv(Job):
         ''' Iterative training '''
         for i in range(self.n_iteraction):
 
+            print('\033[92m[INFO]\033[0m', i, '\033[92miteration done.\033[0m')
+            print('\033[92m[INFO]\033[0m', i, '\033[92miteration done. Train discriminator with epochs\033[0m', self.epochs)
             AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
             self.trainer.setNetwork(self.advnet.adversary)
-            self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold)
 
             self.trainer.plotIteration(i)
             if not i % 5:
                 self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
 
+            print('\033[92m[INFO]\033[0m', i, '\033[92miteration done. Train generator with epochs\033[0m', self.epochs)
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 1, epochs = self.epochs, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 
+        print('\033[92m[INFO]\033[0m', self.n_iteraction, '\033[92miteration done, storing and plotting results.\033[0m')
         self.trainer.setNetwork(self.advnet.adversary)
         self.trainer.saveLoss()
         self.trainer.setNetwork(self.advnet.generator)
         self.trainer.plotResults()
 
-#class JobAdvReg(Job):
-#    def __init__(self, preTrain_epochs, hidden_auxNlayer, hidden_auxNnode, n_iteraction, lam, *args, **kwargs):
-#        super(self.__class__, self).__init__(*args, **kwargs)
-#        self.preTrain_epochs = int(preTrain_epochs)
-#        self.hidden_auxNlayer = int(hidden_auxNlayer)
-#        self.hidden_auxNnode = int(hidden_auxNnode)
-#        self.n_iteraction = int(n_iteraction)
-#        self.lam = float(lam)
-#        self.output = '{}__E{}_L{}N{}_it{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.n_iteraction, self.lam)
-#        self.para_train['base_directory'] = self.output
-#        
-#    def run(self):
-#
-#        ''' An instance of Train for data handling '''
-#        self.trainer = Train(**self.para_train)
-#        self.trainer.split(nfold = self.nfold)
-#
-#        ''' An instance of AdvReg for network construction and pass it to Train '''
-#        self.advreg = AdvReg(name = self.name, build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode,
-#            hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode, dropout_rate = self.dropout_rate)
-#        self.advreg.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, momentum = self.momentum)
-#        self.advreg.plot(base_directory = self.output)
-#    
-#        ''' pre-training '''
-#        if self.preTrain_epochs != 0:
-#            AdvNet.make_trainable(self.advreg.generator, True)
-#            AdvNet.make_trainable(self.advreg.discriminator, False)
-#            self.trainer.setNetwork(self.advreg.generator)
-#            self.result = self.trainer.train(mode = 0, epochs = self.preTrain_epochs, fold = self.train_fold)
-#
-#            AdvNet.make_trainable(self.advreg.generator, False)
-#            AdvNet.make_trainable(self.advreg.discriminator, True)
-#            self.trainer.setNetwork(self.advreg.discriminator)
-#            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
-#
-#        self.output_path = '/'.join([self.output, self.describe()]) + '/'
-#        if not os.path.exists(self.output_path):
-#            os.makedirs(self.output_path)
-#        ''' Iterative training '''
-#        for i in range(self.n_iteraction):
-#
-#            AdvNet.make_trainable(self.advnet.generator, True)
-#            AdvNet.make_trainable(self.advnet.discriminator, False)
-#            self.trainer.setNetwork(self.advnet.adversary)
-#            self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
-#
-#            self.trainer.plotIteration(i)
-#            if not i % 5:
-#                self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
-#
-#            AdvNet.make_trainable(self.advnet.generator, False)
-#            AdvNet.make_trainable(self.advnet.discriminator, True)
-#            self.trainer.setNetwork(self.advnet.discriminator)
-#            self.result = self.trainer.train(mode = 1, epochs = self.epochs, fold = self.train_fold)
-#
-#        self.trainer.setNetwork(self.advnet.adversary)
-#        self.trainer.saveLoss()
-#        self.trainer.setNetwork(self.advnet.generator)
-#        self.trainer.plotResults()

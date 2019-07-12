@@ -138,7 +138,7 @@ class Batch(object):
                 yield dict(zip(keys, instance))
                 
         settings = list(product_dict(**job_array))
-        print('[INFO]', len(settings), 'jobs will be created.')
+        print('\033[92m[INFO]\033[0m', len(settings), '\033[92mjobs will be created.\033[0m')
         for setting in settings:
             if not local_run:
                 with open(self.htcjdl, 'a+') as f:
