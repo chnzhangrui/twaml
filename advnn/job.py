@@ -103,9 +103,6 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
             self.trainer.setNetwork(self.advnet.adversary)
-            self.advnet.generator.summary()
-            self.advnet.discriminator.summary()
-            self.advnet.adversary.summary()
             self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold)
 
             self.trainer.plotIteration(i)
@@ -116,9 +113,6 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.advnet.generator.summary()
-            self.advnet.discriminator.summary()
-            self.advnet.adversary.summary()
             self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 
 
