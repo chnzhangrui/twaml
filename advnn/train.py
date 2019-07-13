@@ -114,7 +114,7 @@ class Train(object):
         elif mode == 2:
             assert (self.has_syst or self.has_mass)
             return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
-                validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = 1)
+                validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = self.epochs)
         elif mode == 3:
             assert (self.has_syst or self.has_mass)
             return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
@@ -131,30 +131,52 @@ class Train(object):
             return loss_train, loss_test
 
 
-    def plotLoss(self, result):
+    def plotLoss(self, result, regression = False):
         ''' Plot loss functions '''
         if self.epochs < 2:
             print('Only', self.epochs, 'epochs, no need for plotLoss.')
             return
 
-        # Summarise history for accuracy
-        plt.plot(result.history['acc'])
-        plt.plot(result.history['val_acc'])
-        plt.title('network accuracy')
-        plt.ylabel('Accuracy')
-        plt.xlabel('Epoch')
-        plt.legend(['Train', 'Test'], loc='upper left')
-        plt.savefig(self.output_path + self.name + '_acc' + '.pdf', format='pdf')
-        plt.clf()
-        # Summarise history for loss
-        plt.plot(result.history['loss'])
-        plt.plot(result.history['val_loss'])
-        plt.title('network loss')
-        plt.ylabel('Loss')
-        plt.xlabel('Epoch')
-        plt.legend(['Train', 'Test'], loc='upper right')
-        plt.savefig(self.output_path + self.name + '_loss' + '.pdf', format='pdf')
-        plt.clf()
+        if regression:
+            # Summarise history for mse
+            plt.plot(result.history['mean_squared_error'])
+            plt.plot(result.history['val_mean_squared_error'])
+            plt.title('network loss')
+            plt.ylabel('Loss')
+            plt.xlabel('Epoch')
+            plt.legend(['Train', 'Test'], loc='upper right')
+            plt.savefig(self.output_path + self.name + '_mse' + '.pdf', format='pdf')
+            plt.clf()
+            # Summarise history for loss
+            plt.plot(result.history['loss'])
+            plt.plot(result.history['val_loss'])
+            plt.title('network loss')
+            plt.ylabel('Loss')
+            plt.xlabel('Epoch')
+            plt.legend(['Train', 'Test'], loc='upper right')
+            plt.savefig(self.output_path + self.name + '_rloss' + '.pdf', format='pdf')
+            plt.clf()
+
+        else:
+            # Summarise history for accuracy
+            plt.plot(result.history['acc'])
+            plt.plot(result.history['val_acc'])
+            plt.title('network accuracy')
+            plt.ylabel('Accuracy')
+            plt.xlabel('Epoch')
+            plt.legend(['Train', 'Test'], loc='upper left')
+            plt.savefig(self.output_path + self.name + '_acc' + '.pdf', format='pdf')
+            plt.clf()
+            # Summarise history for loss
+            plt.plot(result.history['loss'])
+            plt.plot(result.history['val_loss'])
+            plt.title('network loss')
+            plt.ylabel('Loss')
+            plt.xlabel('Epoch')
+            plt.legend(['Train', 'Test'], loc='upper right')
+            plt.savefig(self.output_path + self.name + '_loss' + '.pdf', format='pdf')
+            plt.clf()
+
 
     def plotResults(self, xlo = 0., xhi = 1, nbin = 20):
         from sklearn.metrics import roc_curve, auc

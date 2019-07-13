@@ -51,6 +51,7 @@ class Batch(object):
 
         self.para_net_Adv = {**self.para_net_sim,
             'name': 'ANN',
+            'problem': '0',
             'epochs': 2,
             'hidden_auxNlayer': 2,
             'hidden_auxNnode': 5,
@@ -70,6 +71,7 @@ class Batch(object):
 
         self.para_net_AdvReg = {**self.para_net_sim,
             'name': 'ANNReg',
+            'problem': '1',
             'epochs': 2,
             'hidden_auxNlayer': 2,
             'hidden_auxNnode': 5,
