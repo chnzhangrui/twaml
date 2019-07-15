@@ -79,8 +79,8 @@ class JobAdv(Job):
             self.trainer.setNetwork(self.advnet.generator)
             self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
             self.trainer.evaluate()
-            self.trainer.plotLoss(self.result)
-            self.trainer.plotResults()
+            self.trainer.plotLoss(self.result, 'gen')
+            self.trainer.plotResults('gen')
 
             print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
             AdvNet.make_trainable(self.advnet.generator, False)
@@ -88,8 +88,8 @@ class JobAdv(Job):
             self.trainer.setNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold)
             self.trainer.evaluate()
-            self.trainer.plotLoss(self.result, True)
-            self.trainer.plotResults()
+            self.trainer.plotLoss(self.result, 'dis', True)
+            self.trainer.plotResults('dis')
         else:
             print('\033[91m[INFO]\033[0m', '\033[91mpre-training skipped!\033[0m')
 

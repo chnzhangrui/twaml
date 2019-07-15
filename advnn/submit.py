@@ -51,7 +51,7 @@ if __name__ == '__main__':
         'preTrain_epochs': ['20'],
         'hidden_auxNlayer': ['2', '5'],
         'hidden_auxNnode': ['10', '20'],
-        'n_iteraction': ['50', '100'],
+        'n_iteraction': ['100'],
         'epochs': ['1', '2'],
         'lam': ['0.00001', '0.0001', '0.000001'],
     }

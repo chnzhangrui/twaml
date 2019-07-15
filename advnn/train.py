@@ -131,7 +131,7 @@ class Train(object):
             return loss_train, loss_test
 
 
-    def plotLoss(self, result, regression = False):
+    def plotLoss(self, result, name = 'sim', regression = False):
         ''' Plot loss functions '''
         if self.epochs < 2:
             print('Only', self.epochs, 'epochs, no need for plotLoss.')
@@ -142,10 +142,10 @@ class Train(object):
             plt.plot(result.history['mean_squared_error'])
             plt.plot(result.history['val_mean_squared_error'])
             plt.title('network loss')
-            plt.ylabel('Loss')
+            plt.ylabel('MSE')
             plt.xlabel('Epoch')
             plt.legend(['Train', 'Test'], loc='upper right')
-            plt.savefig(self.output_path + self.name + '_mse' + '.pdf', format='pdf')
+            plt.savefig(self.output_path + self.name + '_' + name + '_mse' + '.pdf', format='pdf')
             plt.clf()
             # Summarise history for loss
             plt.plot(result.history['loss'])
@@ -154,7 +154,7 @@ class Train(object):
             plt.ylabel('Loss')
             plt.xlabel('Epoch')
             plt.legend(['Train', 'Test'], loc='upper right')
-            plt.savefig(self.output_path + self.name + '_rloss' + '.pdf', format='pdf')
+            plt.savefig(self.output_path + self.name + '_' + name + '_rloss' + '.pdf', format='pdf')
             plt.clf()
 
         else:
@@ -165,7 +165,7 @@ class Train(object):
             plt.ylabel('Accuracy')
             plt.xlabel('Epoch')
             plt.legend(['Train', 'Test'], loc='upper left')
-            plt.savefig(self.output_path + self.name + '_acc' + '.pdf', format='pdf')
+            plt.savefig(self.output_path + self.name + '_' + name + '_acc' + '.pdf', format='pdf')
             plt.clf()
             # Summarise history for loss
             plt.plot(result.history['loss'])
@@ -174,11 +174,11 @@ class Train(object):
             plt.ylabel('Loss')
             plt.xlabel('Epoch')
             plt.legend(['Train', 'Test'], loc='upper right')
-            plt.savefig(self.output_path + self.name + '_loss' + '.pdf', format='pdf')
+            plt.savefig(self.output_path + self.name + '_' + name + '_loss' + '.pdf', format='pdf')
             plt.clf()
 
 
-    def plotResults(self, xlo = 0., xhi = 1, nbin = 20):
+    def plotResults(self, name = 'sim', xlo = 0., xhi = 1, nbin = 20):
         from sklearn.metrics import roc_curve, auc
 
         train_predict = self.network.predict(self.X_train[self.fold])
@@ -193,13 +193,13 @@ class Train(object):
         plt.plot(train_FP, train_TP, 'g--', label='Train AUC = %2.1f%%'% (train_AUC * 100))
         plt.plot(test_FP, test_TP, 'b', label='Test  AUC = %2.1f%%'% (test_AUC * 100))
         plt.legend(loc='lower right')
-        
+
         plt.plot([0,1],[0,1],'r--')
         plt.xlim([-0.,1.])
         plt.ylim([-0.,1.])
         plt.ylabel('True Positive Rate')
         plt.xlabel('False Positive Rate')
-        plt.savefig(self.output_path + self.name + '_ROC' + '.pdf', format='pdf')
+        plt.savefig(self.output_path + self.name + '_' + name + '_ROC' + '.pdf', format='pdf')
         plt.clf()
 
         names = ['Absolute', 'Normalised']
@@ -215,10 +215,10 @@ class Train(object):
             plt.xlabel('Response', horizontalalignment = 'left', fontsize = 'large')
             plt.title(names[density])
 
-        plt.savefig(self.output_path + self.name + '_response' + '.pdf', format='pdf')
+        plt.savefig(self.output_path + self.name + '_' + name + '_response' + '.pdf', format='pdf')
         plt.clf()
 
-        with open(self.output_path + self.name + '_ROC' + '.txt', 'w') as f:
+        with open(self.output_path + self.name + '_' + name + '_ROC' + '.txt', 'w') as f:
             f.write('Train AUC = %2.1f %%\n'% (train_AUC * 100))
             f.write('Test  AUC = %2.1f %%\n'% (test_AUC * 100))
 
@@ -241,8 +241,8 @@ class Train(object):
             for idx in range(len(self.losses_test)):
                 ax = plt.subplot(3, 1, idx + 1)
 
-                plt.plot(np.arange(len(self.losses_train[idxes[idx]])), self.losses_test[idxes[idx]], '--', label = r'Test ')
-                plt.plot(np.arange(len(self.losses_train[idxes[idx]])), self.losses_train[idxes[idx]], '', label = r'Train')
+                plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])), self.losses_test[idxes[idx]], '--', label = r'Test ')
+                plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])), self.losses_train[idxes[idx]], '', label = r'Train')
                 
                 plt.legend(loc='upper right')
                 plt.ylabel(latex[idx], fontsize='large')
@@ -253,7 +253,7 @@ class Train(object):
             plt.savefig(self.output_path + self.name + '_iter_' + str(it) + '.pdf', format = 'pdf')
             plt.clf()
 
-        if not it % 10:
+        if not it % 1:
             plot_twolosses()
 
     def saveLoss(self):
