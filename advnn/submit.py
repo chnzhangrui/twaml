@@ -51,9 +51,10 @@ if __name__ == '__main__':
         'preTrain_epochs': ['20'],
         'hidden_auxNlayer': ['2', '5'],
         'hidden_auxNnode': ['10', '20'],
+        'problem': ['1', '2'],
         'n_iteraction': ['100'],
         'epochs': ['1', '2'],
-        'lam': ['0.00001', '0.0001', '0.000001'],
+        'lam': ['0.1', '1', '10'],
     }
 
     if jobname == 'DNN':

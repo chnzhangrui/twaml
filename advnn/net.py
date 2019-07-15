@@ -4,7 +4,7 @@ from keras.layers import Input, Dense, Dropout
 from keras.models import Model
 from keras.optimizers import SGD, Adam
 from keras.utils.vis_utils import plot_model
-from keras.losses import mean_squared_error
+from keras.losses import mean_squared_error, mean_absolute_error
 # from keras.layers.advanced_activations import LeakyReLU
 import keras.backend as K
 from keras.layers.normalization import BatchNormalization
@@ -103,6 +103,11 @@ class AdvNet(DeepNet):
                 return c * mean_squared_error(z_true, z_pred)
             return _loss
 
+        def mae_loss(c):
+            def _loss(z_true, z_pred):
+                return c * mean_absolute_error(z_true, z_pred)
+            return _loss
+
         sgd = SGD(lr = lr, momentum = momentum)
         self.generator.compile(loss = binary_loss(c = 1.0), optimizer = sgd, metrics=['accuracy'])
 
@@ -119,8 +124,11 @@ class AdvNet(DeepNet):
         self.make_trainable(self.discriminator, True)
         if self.problem == 0:
             self.discriminator.compile(loss = binary_loss(c = 1.0), optimizer = sgd, metrics=['accuracy'])
+        elif self.problem == 1:
+            self.discriminator.compile(loss = mse_loss(c = lam), optimizer = Adam(), metrics=['mse', 'mae'])
         else:
-            self.discriminator.compile(loss = mse_loss(c = lam), optimizer = Adam(), metrics=['mse'])
+            self.discriminator.compile(loss = mae_loss(c = lam), optimizer = Adam(), metrics=['mae', 'mse'])
+            
 
         self.adversary = Model(inputs=[self.input_GLayer], outputs=[self.generator(self.input_GLayer), self.discriminator(self.input_GLayer)])
 

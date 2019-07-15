@@ -27,6 +27,7 @@ class Batch(object):
 
         self.para_net_sim = {
             'name': 'simple',
+            'problem': '0',
             'nfold': 3,
             'train_fold': 0,
             'epochs': 100,

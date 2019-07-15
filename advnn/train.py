@@ -55,7 +55,10 @@ class Train(object):
             backgd = from_pytables(backgd_h5, backgd_name, tree_name = backgd_tree, weight_name = weight_name, label = self.backgd_label, auxlabel = self.center_label)
             signal.keep_columns([reg_variable])
             backgd.keep_columns([reg_variable])
-            self.z = np.concatenate([signal.df.to_numpy(), backgd.df.to_numpy()])
+            def normalise(df):
+                df[df > 200] = 200
+                return (df-110)/90.
+            self.z = np.concatenate([normalise(signal.df).to_numpy(), normalise(backgd.df).to_numpy()])
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
 
         self.output_path = '/'.join([base_directory, self.describe()]) + '/'
@@ -91,7 +94,7 @@ class Train(object):
             self.z_train[i], self.z_test[i] = self.z[train_idx], self.z[test_idx]
             self.w_train[i], self.w_test[i] = self.w[train_idx], self.w[test_idx]
 
-    def train(self, mode, epochs, fold):
+    def train(self, mode, epochs, fold, callbacks = ''):
         '''
         mode = 0: one target mode => signal vs backgd
                1: one target mode => signal vs syssig
@@ -110,18 +113,18 @@ class Train(object):
                 validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=[checkpoint])
         elif mode == 1:
             return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
-                validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs)
+                validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=callbacks)
         elif mode == 2:
             assert (self.has_syst or self.has_mass)
             return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
-                validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = self.epochs)
+                validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=callbacks)
         elif mode == 3:
             assert (self.has_syst or self.has_mass)
             return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
-                validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs)
+                validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs, callbacks=callbacks)
 
     def evaluate(self, simple = True):
-        print('Evaluating ...', self.has_syst or self.has_mass, self.name)
+        print('\033[92m[INFO] Evaluating by net:\033[0m', self.network.name, self.has_syst or self.has_mass, self.name)
         if simple:
             self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
             self.network.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
@@ -181,6 +184,8 @@ class Train(object):
     def plotResults(self, name = 'sim', xlo = 0., xhi = 1, nbin = 20):
         from sklearn.metrics import roc_curve, auc
 
+
+        print('\033[92m[INFO] Predicting by net:\033[0m', self.network.name)
         train_predict = self.network.predict(self.X_train[self.fold])
         test_predict = self.network.predict(self.X_test[self.fold])
 
@@ -212,15 +217,23 @@ class Train(object):
             plt.hist(test_predict[self.y_test[self.fold] == self.backgd_label],   range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Test ' + self.backgd_latex, linestyle = 'dashed')
             plt.ylim(0, plt.gca().get_ylim()[1] * 1.5)
             plt.legend()
-            plt.xlabel('Response', horizontalalignment = 'left', fontsize = 'large')
+            plt.xlabel('Response' if 'dis' not in name else 'Mass prediction', horizontalalignment = 'left', fontsize = 'large')
             plt.title(names[density])
-
         plt.savefig(self.output_path + self.name + '_' + name + '_response' + '.pdf', format='pdf')
         plt.clf()
 
         with open(self.output_path + self.name + '_' + name + '_ROC' + '.txt', 'w') as f:
             f.write('Train AUC = %2.1f %%\n'% (train_AUC * 100))
             f.write('Test  AUC = %2.1f %%\n'% (test_AUC * 100))
+
+        plt.hist(self.z_train[self.fold]-train_predict, range = [-1, 1], bins = nbin, histtype = 'step', density = 0, label='Training ')
+        plt.hist(self.z_test[self.fold]-test_predict,   range = [-1, 1], bins = nbin, histtype = 'step', density = 0, label='Test ', linestyle = 'dashed')
+        plt.legend(loc='upper right')
+        plt.xlabel('True - Prediction')
+        plt.ylabel('Events')
+
+        plt.savefig(self.output_path + self.name + '_' + name + '_response_residual' + '.pdf', format='pdf')
+        plt.clf()
 
 
     def plotIteration(self, it):
@@ -241,9 +254,9 @@ class Train(object):
             for idx in range(len(self.losses_test)):
                 ax = plt.subplot(3, 1, idx + 1)
 
-                plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])), self.losses_test[idxes[idx]], '--', label = r'Test ')
-                plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])), self.losses_train[idxes[idx]], '', label = r'Train')
-                
+                plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])+1), self.losses_test[idxes[idx]], '--', label = r'Test ')
+                plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])+1), self.losses_train[idxes[idx]], '', label = r'Train')
+
                 plt.legend(loc='upper right')
                 plt.ylabel(latex[idx], fontsize='large')
                 plt.grid()

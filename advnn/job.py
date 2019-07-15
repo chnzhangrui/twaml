@@ -1,5 +1,6 @@
 from net import DeepNet, AdvNet
 from train import Train
+from keras.callbacks import Callback
 import os
 
 class Job(object):
@@ -56,7 +57,7 @@ class JobAdv(Job):
         self.hidden_auxNnode = int(hidden_auxNnode)
         self.n_iteraction = int(n_iteraction)
         self.lam = float(lam)
-        self.output = '{}__E{}_L{}N{}_it{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.n_iteraction, self.lam)
+        self.output = '{}__E{}_L{}N{}_it{}_Loss{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.n_iteraction, self.problem, self.lam)
         self.para_train['base_directory'] = self.output
         
     def run(self):
@@ -70,26 +71,47 @@ class JobAdv(Job):
             hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode, dropout_rate = self.dropout_rate)
         self.advnet.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, momentum = self.momentum)
         self.advnet.plot(base_directory = self.output)
+
+
+#        for i in range(self.preTrain_epochs):
+#            AdvNet.make_trainable(self.advnet.generator, False)
+#            AdvNet.make_trainable(self.advnet.discriminator, True)
+#            self.trainer.setNetwork(self.advnet.discriminator)
+#            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold)
+#            self.trainer.evaluate()
+#            self.trainer.plotLoss(self.result, 'dis'+str(i), True)
+#            self.trainer.plotResults('dis'+str(i))
+
+        class Evaluate(Callback):
+            def __init__(self, name, trainer):
+                self.name = name
+                self.trainer = trainer
+            def on_epoch_end(self, epoch, logs=None):
+                print('\033[92m[INFO]\033[0m', '\033[92mCheckpoint \033[0m', self.name, epoch)
+                self.trainer.evaluate()
+                self.trainer.plotResults(self.name + str(epoch))
     
         ''' pre-training '''
         if self.preTrain_epochs != 0:
+            prefix = 'pre-gen'
             print('\033[92m[INFO]\033[0m', '\033[92mpre-training generator (1st) with epochs\033[0m', self.preTrain_epochs)
             AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
             self.trainer.setNetwork(self.advnet.generator)
-            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
             self.trainer.evaluate()
-            self.trainer.plotLoss(self.result, 'gen')
-            self.trainer.plotResults('gen')
+            self.trainer.plotLoss(self.result, prefix)
+            self.trainer.plotResults(prefix)
 
+            prefix = 'pre-dis'
             print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
             self.trainer.evaluate()
-            self.trainer.plotLoss(self.result, 'dis', True)
-            self.trainer.plotResults('dis')
+            self.trainer.plotLoss(self.result, prefix, True)
+            self.trainer.plotResults(prefix)
         else:
             print('\033[91m[INFO]\033[0m', '\033[91mpre-training skipped!\033[0m')
 
@@ -120,5 +142,5 @@ class JobAdv(Job):
         self.trainer.setNetwork(self.advnet.adversary)
         self.trainer.saveLoss()
         self.trainer.setNetwork(self.advnet.generator)
-        self.trainer.plotResults()
+        self.trainer.plotResults('iter-gen')
 
