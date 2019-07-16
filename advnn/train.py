@@ -123,12 +123,15 @@ class Train(object):
             return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
                 validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs, callbacks=callbacks)
 
-    def evaluate(self, simple = True):
-        print('\033[92m[INFO] Evaluating by net:\033[0m', self.network.name, self.has_syst or self.has_mass, self.name)
-        if simple:
+    def evaluate(self, mode = 'y'):
+        print('\033[92m[INFO] Evaluating by net:\033[0m', self.network.name, '\033[92madversary\033[0m', self.has_syst or self.has_mass, self.name, '\033[92mmode\033[0m', mode)
+        if mode.lower() == 'y':
             self.network.evaluate(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
             self.network.evaluate(self.X_test[self.fold], self.y_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
-        else:
+        elif mode.lower() == 'z':
+            self.network.evaluate(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], verbose=0)
+            self.network.evaluate(self.X_test[self.fold], self.z_test[self.fold], sample_weight = self.w_test[self.fold], verbose=0)
+        elif mode.lower() == 'yz':
             loss_train = self.network.evaluate(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], verbose=0)
             loss_test = self.network.evaluate(self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], sample_weight = [self.w_test[self.fold], self.w_test[self.fold]], verbose=0)
             return loss_train, loss_test
@@ -181,11 +184,11 @@ class Train(object):
             plt.clf()
 
 
-    def plotResults(self, name = 'sim', xlo = 0., xhi = 1, nbin = 20):
+    def plotResults(self, name = 'sim', mode = 'y', xlo = 0., xhi = 1, nbin = 20):
         from sklearn.metrics import roc_curve, auc
 
 
-        print('\033[92m[INFO] Predicting by net:\033[0m', self.network.name)
+        print('\033[92m[INFO] Predicting by net:\033[0m', self.network.name, '\033[92mwih mode\033[0m', mode)
         train_predict = self.network.predict(self.X_train[self.fold])
         test_predict = self.network.predict(self.X_test[self.fold])
 
@@ -204,7 +207,7 @@ class Train(object):
         plt.ylim([-0.,1.])
         plt.ylabel('True Positive Rate')
         plt.xlabel('False Positive Rate')
-        plt.savefig(self.output_path + self.name + '_' + name + '_ROC' + '.pdf', format='pdf')
+        plt.savefig(self.output_path + self.name + '_' + name + '_' + mode + '_ROC' + '.pdf', format='pdf')
         plt.clf()
 
         names = ['Absolute', 'Normalised']
@@ -217,12 +220,12 @@ class Train(object):
             plt.hist(test_predict[self.y_test[self.fold] == self.backgd_label],   range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Test ' + self.backgd_latex, linestyle = 'dashed')
             plt.ylim(0, plt.gca().get_ylim()[1] * 1.5)
             plt.legend()
-            plt.xlabel('Response' if 'dis' not in name else 'Mass prediction', horizontalalignment = 'left', fontsize = 'large')
+            plt.xlabel('Response' if mode.lower() == 'y' else 'Mass prediction', horizontalalignment = 'left', fontsize = 'large')
             plt.title(names[density])
-        plt.savefig(self.output_path + self.name + '_' + name + '_response' + '.pdf', format='pdf')
+        plt.savefig(self.output_path + self.name + '_' + name + '_' + mode + '_response' + '.pdf', format='pdf')
         plt.clf()
 
-        with open(self.output_path + self.name + '_' + name + '_ROC' + '.txt', 'w') as f:
+        with open(self.output_path + self.name + '_' + name + '_' + mode + '_ROC' + '.txt', 'w') as f:
             f.write('Train AUC = %2.1f %%\n'% (train_AUC * 100))
             f.write('Test  AUC = %2.1f %%\n'% (test_AUC * 100))
 
@@ -232,7 +235,7 @@ class Train(object):
         plt.xlabel('True - Prediction')
         plt.ylabel('Events')
 
-        plt.savefig(self.output_path + self.name + '_' + name + '_response_residual' + '.pdf', format='pdf')
+        plt.savefig(self.output_path + self.name + '_' + name + '_' + mode + '_response_residual' + '.pdf', format='pdf')
         plt.clf()
 
 
@@ -240,7 +243,7 @@ class Train(object):
         if not (self.has_syst or self.has_mass):
             return
 
-        loss_train, loss_test = self.evaluate(False)
+        loss_train, loss_test = self.evaluate(mode = 'yz')
         self.losses_test['L_gen'].append(loss_test[1][None][0])
         self.losses_test['L_dis'].append(-loss_test[2][None][0])
         self.losses_test['L_diff'].append(loss_test[0][None][0])

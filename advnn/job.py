@@ -36,7 +36,6 @@ class Job(object):
         
         ''' Run the training '''
         self.result = self.trainer.train(mode = 0, epochs = self.epochs, fold = self.train_fold)
-        self.trainer.evaluate()
         self.trainer.plotLoss(self.result)
         self.trainer.plotResults()
 
@@ -72,23 +71,12 @@ class JobAdv(Job):
         self.advnet.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, momentum = self.momentum)
         self.advnet.plot(base_directory = self.output)
 
-
-#        for i in range(self.preTrain_epochs):
-#            AdvNet.make_trainable(self.advnet.generator, False)
-#            AdvNet.make_trainable(self.advnet.discriminator, True)
-#            self.trainer.setNetwork(self.advnet.discriminator)
-#            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold)
-#            self.trainer.evaluate()
-#            self.trainer.plotLoss(self.result, 'dis'+str(i), True)
-#            self.trainer.plotResults('dis'+str(i))
-
         class Evaluate(Callback):
             def __init__(self, name, trainer):
                 self.name = name
                 self.trainer = trainer
             def on_epoch_end(self, epoch, logs=None):
                 print('\033[92m[INFO]\033[0m', '\033[92mCheckpoint \033[0m', self.name, epoch)
-                self.trainer.evaluate()
                 self.trainer.plotResults(self.name + str(epoch))
     
         ''' pre-training '''
@@ -99,7 +87,6 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, False)
             self.trainer.setNetwork(self.advnet.generator)
             self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
-            self.trainer.evaluate()
             self.trainer.plotLoss(self.result, prefix)
             self.trainer.plotResults(prefix)
 
@@ -109,7 +96,6 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.setNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
-            self.trainer.evaluate()
             self.trainer.plotLoss(self.result, prefix, True)
             self.trainer.plotResults(prefix)
         else:
@@ -125,22 +111,32 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
             self.trainer.setNetwork(self.advnet.adversary)
-            self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold)
-
+            self.result = self.trainer.train(mode = 3, epochs = 5, fold = self.train_fold)
             self.trainer.plotIteration(i)
+
+            prefix = 'iter-gen' + str(i)
+            mode = 'y'
+            print('\033[92m[DEBUG] Going to inspect predction by\033[0m', prefix, '\033[92mwith mode\033[0m', mode)
+            self.trainer.setNetwork(self.advnet.generator)
+            self.trainer.plotResults(prefix, mode)
+
             if not i % 5:
                 self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
 
-            print('\033[92m[INFO] Going to train\033[0m', i, '\033[92miteration, discriminator (2nd) with epochs\033[0m', self.epochs)
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.setNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 
+            prefix = 'iter-dis' + str(i)
+            mode = 'z'
+            print('\033[92m[INFO] Going to inspect predction by\033[0m', prefix, '\033[92mwith mode\033[0m', mode)
+            self.trainer.plotResults(prefix, mode)
 
-        print('\033[92m[INFO]\033[0m', self.n_iteraction, '\033[92miteration done, storing and plotting results.\033[0m')
+
+        print('\033[92m[INFO]\033[0m', self.n_iteraction, '\033[92mIteration done, storing and plotting results.\033[0m')
         self.trainer.setNetwork(self.advnet.adversary)
         self.trainer.saveLoss()
         self.trainer.setNetwork(self.advnet.generator)
-        self.trainer.plotResults('iter-gen')
+        self.trainer.plotResults('iter-genFinal')
 
