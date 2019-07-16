@@ -263,7 +263,7 @@ class Train(object):
 
             plt.xlabel('Number of iterations', horizontalalignment='left', fontsize='large')
             plt.subplots_adjust(left=0.18, right=0.95, top=0.95, hspace = 0.4)
-            plt.savefig(self.output_path + self.name + '_iter_' + str(it) + '.pdf', format = 'pdf')
+            plt.savefig(self.output_path + self.name + '_iter' + str(it) + '.pdf', format = 'pdf')
             plt.clf()
 
         if not it % 1:
