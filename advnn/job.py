@@ -83,8 +83,8 @@ class JobAdv(Job):
         if self.preTrain_epochs != 0:
             prefix = 'pre-gen'
             print('\033[92m[INFO]\033[0m', '\033[92mpre-training generator (1st) with epochs\033[0m', self.preTrain_epochs)
-            AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
+            AdvNet.make_trainable(self.advnet.generator, True)
             self.trainer.setNetwork(self.advnet.generator)
             self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
             self.trainer.plotLoss(self.result, prefix)
@@ -92,8 +92,8 @@ class JobAdv(Job):
 
             prefix = 'pre-dis'
             print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
-            AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
+            AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
             self.trainer.plotLoss(self.result, prefix, True)
@@ -108,8 +108,8 @@ class JobAdv(Job):
         for i in range(1, self.n_iteraction+1):
 
             print('\033[92m[INFO] Going to train\033[0m', i, '\033[92miteration, generator (1st) with epochs\033[0m', self.epochs)
-            AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
+            AdvNet.make_trainable(self.advnet.generator, True)
             self.trainer.setNetwork(self.advnet.adversary)
             self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold)
             self.trainer.plotIteration(i)
@@ -124,8 +124,8 @@ class JobAdv(Job):
                 self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
 
             print('\033[92m[INFO] Going to train\033[0m', i, '\033[92miteration, generator (1st) with epochs\033[0m', self.epochs)
-            AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
+            AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
 

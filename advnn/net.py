@@ -120,8 +120,8 @@ class AdvNet(DeepNet):
         self.output_DLayers = Dense(1, activation = self.output_activation, name = self.name + '_Dis_output')(self.output_DLayers)
         self.output_DLayers = BatchNormalization()(self.output_DLayers)
         self.discriminator = Model(inputs=[self.input_GLayer], outputs=[self.output_DLayers], name = self.name + '_Dis')
-        self.make_trainable(self.generator, False)
         self.make_trainable(self.discriminator, True)
+        self.make_trainable(self.generator, False)
         if self.problem == 0:
             self.discriminator.compile(loss = binary_loss(c = 1.0), optimizer = sgd, metrics=['accuracy'])
         elif self.problem == 1:
@@ -132,8 +132,8 @@ class AdvNet(DeepNet):
 
         self.adversary = Model(inputs=[self.input_GLayer], outputs=[self.generator(self.input_GLayer), self.discriminator(self.input_GLayer)])
 
-        self.make_trainable(self.generator, True)
         self.make_trainable(self.discriminator, False)
+        self.make_trainable(self.generator, True)
         self.lam = lam
         if self.problem == 0:
             self.adversary.compile(loss = [binary_loss(c = 1.0), binary_loss(c = -lam)], optimizer = sgd, metrics = ['accuracy'])
