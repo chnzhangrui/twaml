@@ -111,7 +111,7 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.generator, True)
             AdvNet.make_trainable(self.advnet.discriminator, False)
             self.trainer.setNetwork(self.advnet.adversary)
-            self.result = self.trainer.train(mode = 3, epochs = 5, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold)
             self.trainer.plotIteration(i)
 
             prefix = 'iter-gen' + str(i)
@@ -123,6 +123,7 @@ class JobAdv(Job):
             if not i % 5:
                 self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
 
+            print('\033[92m[INFO] Going to train\033[0m', i, '\033[92miteration, generator (1st) with epochs\033[0m', self.epochs)
             AdvNet.make_trainable(self.advnet.generator, False)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             self.trainer.setNetwork(self.advnet.discriminator)

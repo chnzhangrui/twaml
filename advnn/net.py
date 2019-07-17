@@ -91,7 +91,7 @@ class AdvNet(DeepNet):
         # Output layer
         self.output_GLayers = Dense(1, activation = self.output_activation, name = self.name + '_Gen_output')(self.output_GLayers)
         # Define model with above layers
-        self.generator = Model(inputs=[self.input_GLayer], outputs=[self.output_GLayers], name = self.name)
+        self.generator = Model(inputs=[self.input_GLayer], outputs=[self.output_GLayers], name = self.name + '_Gen')
 
         def binary_loss(c):
             def _loss(z_true, z_pred):
