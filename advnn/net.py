@@ -128,7 +128,7 @@ class AdvNet(DeepNet):
             self.discriminator.compile(loss = mse_loss(c = lam), optimizer = Adam(), metrics=['mse', 'mae'])
         else:
             self.discriminator.compile(loss = mae_loss(c = lam), optimizer = Adam(), metrics=['mae', 'mse'])
-            
+
 
         self.adversary = Model(inputs=[self.input_GLayer], outputs=[self.generator(self.input_GLayer), self.discriminator(self.input_GLayer)])
 
@@ -137,6 +137,7 @@ class AdvNet(DeepNet):
         self.lam = lam
         if self.problem == 0:
             self.adversary.compile(loss = [binary_loss(c = 1.0), binary_loss(c = -lam)], optimizer = sgd, metrics = ['accuracy'])
-        else:
+        elif self.problem == 1:
             self.adversary.compile(loss = [binary_loss(c = 1.0), mse_loss(c = -lam)], optimizer = sgd, metrics = ['accuracy', 'mse'])
-
+        else:
+            self.adversary.compile(loss = [binary_loss(c = 1.0), mae_loss(c = -lam)], optimizer = sgd, metrics = ['accuracy', 'mae'])

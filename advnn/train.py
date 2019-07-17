@@ -257,8 +257,8 @@ class Train(object):
             for idx in range(len(self.losses_test)):
                 ax = plt.subplot(3, 1, idx + 1)
 
-                plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])+1), self.losses_test[idxes[idx]], '--', label = r'Test ')
                 plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])+1), self.losses_train[idxes[idx]], '', label = r'Train')
+                plt.plot(np.arange(1, len(self.losses_train[idxes[idx]])+1), self.losses_test[idxes[idx]], '--', label = r'Test ')
 
                 plt.legend(loc='upper right')
                 plt.ylabel(latex[idx], fontsize='large')
