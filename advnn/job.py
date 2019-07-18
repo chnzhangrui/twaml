@@ -134,6 +134,8 @@ class JobAdv(Job):
             print('\033[92m[INFO] Going to inspect predction by\033[0m', prefix, '\033[92mwith mode\033[0m', mode)
             self.trainer.plotResults(prefix, mode)
 
+#            self.trainer.setNetwork(self.advnet.adversary)
+#            self.trainer.plotIteration(i+0.5)
 
         print('\033[92m[INFO]\033[0m', self.n_iteraction, '\033[92mIteration done, storing and plotting results.\033[0m')
         self.trainer.setNetwork(self.advnet.adversary)

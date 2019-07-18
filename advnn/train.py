@@ -269,7 +269,7 @@ class Train(object):
             plt.savefig(self.output_path + self.name + '_iter' + str(it) + '.pdf', format = 'pdf')
             plt.clf()
 
-        if not it % 1:
+        if not it % 5:
             plot_twolosses()
 
     def saveLoss(self):
