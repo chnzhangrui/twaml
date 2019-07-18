@@ -26,7 +26,7 @@ if __name__ == '__main__':
         #'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead', 'Muons_PT_Sub', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],
         'variables': ['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],
     }
-    if 'macproruizhang2019' not in os.uname()[1]:
+    if 'macproruizhang2019' not in os.uname()[1] and 'macbook' not in os.uname()[1].lower():
         inputs['signal_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-massscaled/sig_zero_jet.h5'
         inputs['backgd_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-massscaled/bkg_zero_jet.h5'
 

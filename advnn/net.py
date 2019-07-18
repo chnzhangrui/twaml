@@ -114,21 +114,12 @@ class AdvNet(DeepNet):
 
         ''' Predict NPs '''
         self.output_DLayers = self.output_GLayers
-        for i in range(self.hidden_auxNlayer):
+        for i in range(self.hidden_auxNlayer - 1):
             self.output_DLayers = Dense(self.hidden_auxNnode, activation = self.hidden_activation, name = self.name + '_Dis_l' + str(i+1))(self.output_DLayers)
             self.output_DLayers = BatchNormalization()(self.output_DLayers)
         self.output_DLayers = Dense(1, activation = self.output_activation, name = self.name + '_Dis_output')(self.output_DLayers)
         self.output_DLayers = BatchNormalization()(self.output_DLayers)
         self.discriminator = Model(inputs=[self.input_GLayer], outputs=[self.output_DLayers], name = self.name + '_Dis')
-        self.make_trainable(self.discriminator, True)
-        self.make_trainable(self.generator, False)
-        if self.problem == 0:
-            self.discriminator.compile(loss = binary_loss(c = 1.0), optimizer = sgd, metrics=['accuracy'])
-        elif self.problem == 1:
-            self.discriminator.compile(loss = mse_loss(c = lam), optimizer = Adam(), metrics=['mse', 'mae'])
-        else:
-            self.discriminator.compile(loss = mae_loss(c = lam), optimizer = Adam(), metrics=['mae', 'mse'])
-
 
         self.adversary = Model(inputs=[self.input_GLayer], outputs=[self.generator(self.input_GLayer), self.discriminator(self.input_GLayer)])
 
@@ -141,3 +132,12 @@ class AdvNet(DeepNet):
             self.adversary.compile(loss = [binary_loss(c = 1.0), mse_loss(c = -lam)], optimizer = sgd, metrics = ['accuracy', 'mse'])
         else:
             self.adversary.compile(loss = [binary_loss(c = 1.0), mae_loss(c = -lam)], optimizer = sgd, metrics = ['accuracy', 'mae'])
+
+        self.make_trainable(self.discriminator, True)
+        self.make_trainable(self.generator, False)
+        if self.problem == 0:
+            self.discriminator.compile(loss = binary_loss(c = 1.0), optimizer = sgd, metrics=['accuracy'])
+        elif self.problem == 1:
+            self.discriminator.compile(loss = mse_loss(c = lam), optimizer = Adam(), metrics=['mse', 'mae'])
+        else:
+            self.discriminator.compile(loss = mae_loss(c = lam), optimizer = Adam(), metrics=['mae', 'mse'])
