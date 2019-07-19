@@ -16,11 +16,12 @@ class Job(object):
         self.momentum = float(momentum)
         self.activation = activation
         self.dropout_rate = float(dropout_rate)
-        self.output = 'job__l{}n{}_lr{}mom{}_{}_k{}_dp{}_e{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.dropout_rate, self.epochs) if output is None else output
+        self.output = 'job__l{}n{}_lr{}mom{}_{}_k{}_dp{}_e{}_plb{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.dropout_rate, self.epochs, self.problem) if output is None else output
         self.name = self.output if name is None else name
 
         self.para_train = para_train
         para_train['base_directory'] = self.output
+        print('\033[92m[INFO]\033[0m', '\033[92mJobname \033[0m', self.output)
 
     def run(self):
 
@@ -58,6 +59,7 @@ class JobAdv(Job):
         self.lam = float(lam)
         self.output = '{}__E{}_L{}N{}_it{}_Loss{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.n_iteraction, self.problem, self.lam)
         self.para_train['base_directory'] = self.output
+        print('\033[92m[INFO]\033[0m', '\033[92mJobname \033[0m', self.output)
         
     def run(self):
 
