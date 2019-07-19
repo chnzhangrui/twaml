@@ -90,7 +90,8 @@ class JobAdv(Job):
             self.trainer.setNetwork(self.advnet.generator)
             self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
             self.trainer.plotLoss(self.result, prefix)
-            self.trainer.plotResults(prefix)
+            mode = 'y'
+            self.trainer.plotResults(prefix, mode)
 
             prefix = 'pre-dis'
             print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
@@ -99,7 +100,8 @@ class JobAdv(Job):
             self.trainer.setNetwork(self.advnet.discriminator)
             self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
             self.trainer.plotLoss(self.result, prefix, True)
-            self.trainer.plotResults(prefix)
+            mode = 'z'
+            self.trainer.plotResults(prefix, mode)
         else:
             print('\033[91m[INFO]\033[0m', '\033[91mpre-training skipped!\033[0m')
 
