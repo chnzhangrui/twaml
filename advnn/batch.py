@@ -58,6 +58,7 @@ class Batch(object):
             'hidden_auxNnode': 5,
             'preTrain_epochs': 20,
             'n_iteraction': 100,
+            'alr': 0.9,
             'lam': 10,
         }
         update_dict(self.para_net_Adv, inputs)
@@ -78,6 +79,7 @@ class Batch(object):
             'hidden_auxNnode': 5,
             'preTrain_epochs': 20,
             'n_iteraction': 100,
+            'alr': 0.9,
             'lam': 10,
         }
         update_dict(self.para_net_AdvReg, inputs)

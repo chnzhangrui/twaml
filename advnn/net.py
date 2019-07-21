@@ -77,7 +77,7 @@ class AdvNet(DeepNet):
         self.hidden_auxNlayer = hidden_auxNlayer
         self.hidden_auxNnode = hidden_auxNnode
 
-    def build(self, input_dimension, lam, lr, momentum):
+    def build(self, input_dimension, lam, lr, alr, momentum):
         self.input_dimension = input_dimension
 
         # Input layer
@@ -138,6 +138,6 @@ class AdvNet(DeepNet):
         if self.problem == 0:
             self.discriminator.compile(loss = binary_loss(c = 1.0), optimizer = sgd, metrics=['accuracy'])
         elif self.problem == 1:
-            self.discriminator.compile(loss = mse_loss(c = lam), optimizer = Adam(), metrics=['mse', 'mae'])
+            self.discriminator.compile(loss = mse_loss(c = lam), optimizer = Adam(lr=alr), metrics=['mse', 'mae'])
         else:
-            self.discriminator.compile(loss = mae_loss(c = lam), optimizer = Adam(), metrics=['mae', 'mse'])
+            self.discriminator.compile(loss = mae_loss(c = lam), optimizer = Adam(lr=alr), metrics=['mae', 'mse'])

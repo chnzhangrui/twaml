@@ -57,7 +57,7 @@ class Train(object):
             backgd.keep_columns([reg_variable])
             def normalise(df):
                 df[df > 200] = 200
-                return (df-110)/90.
+                return (df-110)/70.
             self.z = np.concatenate([normalise(signal.df).to_numpy(), normalise(backgd.df).to_numpy()])
         self.w = np.concatenate([self.signal.weights, self.backgd.weights])
 
