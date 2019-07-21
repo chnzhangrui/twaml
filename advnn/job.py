@@ -50,14 +50,15 @@ class Job(object):
         print('Saved', prefix, 'to disk')
 
 class JobAdv(Job):
-    def __init__(self, preTrain_epochs, hidden_auxNlayer, hidden_auxNnode, n_iteraction, lam, *args, **kwargs):
+    def __init__(self, preTrain_epochs, hidden_auxNlayer, hidden_auxNnode, n_iteraction, lam, alr, *args, **kwargs):
         super(self.__class__, self).__init__(*args, **kwargs)
         self.preTrain_epochs = int(preTrain_epochs)
         self.hidden_auxNlayer = int(hidden_auxNlayer)
         self.hidden_auxNnode = int(hidden_auxNnode)
         self.n_iteraction = int(n_iteraction)
         self.lam = float(lam)
-        self.output = '{}__E{}_L{}N{}_it{}_Loss{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.n_iteraction, self.problem, self.lam)
+        self.alr = float(alr)
+        self.output = '{}__E{}_L{}N{}_alr{}_it{}_Loss{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.alr, self.n_iteraction, self.problem, self.lam)
         self.para_train['base_directory'] = self.output
         print('\033[92m[INFO]\033[0m', '\033[92mJobname \033[0m', self.output)
         
@@ -70,7 +71,7 @@ class JobAdv(Job):
         ''' An instance of AdvNet for network construction and pass it to Train '''
         self.advnet = AdvNet(name = self.name, problem = self.problem, build_dis = True, hidden_Nlayer = self.hidden_Nlayer, hidden_Nnode = self.hidden_Nnode,
             hidden_activation = self.activation, hidden_auxNlayer = self.hidden_auxNlayer, hidden_auxNnode = self.hidden_auxNnode, dropout_rate = self.dropout_rate)
-        self.advnet.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, momentum = self.momentum)
+        self.advnet.build(input_dimension = self.trainer.shape, lam = self.lam, lr = self.lr, alr = self.alr, momentum = self.momentum)
         self.advnet.plot(base_directory = self.output)
 
         class Evaluate(Callback):
@@ -82,26 +83,30 @@ class JobAdv(Job):
                 self.trainer.plotResults(self.name + str(epoch))
     
         ''' pre-training '''
-        if self.preTrain_epochs != 0:
-            prefix = 'pre-gen'
-            print('\033[92m[INFO]\033[0m', '\033[92mpre-training generator (1st) with epochs\033[0m', self.preTrain_epochs)
-            AdvNet.make_trainable(self.advnet.discriminator, False)
-            AdvNet.make_trainable(self.advnet.generator, True)
-            self.trainer.setNetwork(self.advnet.generator)
-            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
-            self.trainer.plotLoss(self.result, prefix)
-            self.trainer.plotResults(prefix)
+        for i in range(1, 5):
+            if self.preTrain_epochs != 0:
+                prefix = 'pre' + str(i) + '-gen'
+                print('\033[92m[INFO]\033[0m', '\033[92mpre-training generator (1st) with epochs\033[0m', self.preTrain_epochs)
+                AdvNet.make_trainable(self.advnet.discriminator, False)
+                AdvNet.make_trainable(self.advnet.generator, True)
+                self.trainer.setNetwork(self.advnet.generator)
+                self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
+                self.trainer.plotLoss(self.result, prefix)
+                #self.trainer.plotResults(prefix)
 
-            prefix = 'pre-dis'
-            print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
-            AdvNet.make_trainable(self.advnet.discriminator, True)
-            AdvNet.make_trainable(self.advnet.generator, False)
-            self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
-            self.trainer.plotLoss(self.result, prefix, True)
-            self.trainer.plotResults(prefix)
-        else:
-            print('\033[91m[INFO]\033[0m', '\033[91mpre-training skipped!\033[0m')
+                prefix = 'pre' + str(i) + '-dis'
+                print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
+                AdvNet.make_trainable(self.advnet.discriminator, True)
+                AdvNet.make_trainable(self.advnet.generator, False)
+                self.trainer.setNetwork(self.advnet.discriminator)
+                self.advnet.discriminator.summary()
+                for layer in self.advnet.discriminator.layers:
+                    print(layer.name, layer.trainable)
+                self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer)])
+                self.trainer.plotLoss(self.result, prefix, True)
+                #self.trainer.plotResults(prefix)
+            else:
+                print('\033[91m[INFO]\033[0m', '\033[91mpre-training skipped!\033[0m')
 
         self.output_path = '/'.join([self.output, self.describe()]) + '/'
         if not os.path.exists(self.output_path):
