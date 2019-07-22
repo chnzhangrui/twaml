@@ -48,13 +48,14 @@ if __name__ == '__main__':
         'lr': ['0.005'],
         'activation': ['elu'],
         'dropout_rate': ['0.2'],
-        'preTrain_epochs': ['20'],
+        'preTrain_epochs': ['5'],
         'hidden_auxNlayer': ['5'],
         'hidden_auxNnode': ['20'],
         'problem': ['1'],
         'n_iteraction': ['100'],
         'epochs': ['1'],
-        'alr': ['0.9'],
+        'alr': ['0.0000001'],
+        'amomentum': ['0.6'],
         'lam': ['1'],
     }
 
