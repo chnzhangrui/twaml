@@ -56,7 +56,7 @@ if __name__ == '__main__':
         'epochs': ['1'],
         'alr': ['0.0000001'],
         'amomentum': ['0.6'],
-        'lam': ['1'],
+        'lam': ['0.1'],
     }
 
     if jobname == 'DNN':

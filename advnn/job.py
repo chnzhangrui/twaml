@@ -85,25 +85,26 @@ class JobAdv(Job):
 #                self.trainer.plotResults(self.name + str(epoch), mode)
     
         ''' pre-training '''
-        for i in range(1, 5):
-            if self.preTrain_epochs != 0:
-                prefix = 'pre' + str(i) + '-gen'
-                print('\033[92m[INFO]\033[0m', '\033[92mpre-training generator (1st) with epochs\033[0m', self.preTrain_epochs)
-                AdvNet.make_trainable(self.advnet.discriminator, False)
-                AdvNet.make_trainable(self.advnet.generator, True)
-                self.trainer.setNetwork(self.advnet.generator)
-                self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'y')])
-                self.trainer.plotLoss(self.result, prefix)
+        if self.preTrain_epochs != 0:
+            prefix = 'pre-gen'
+            print('\033[92m[INFO]\033[0m', '\033[92mpre-training generator (1st) with epochs\033[0m', self.preTrain_epochs)
+            AdvNet.make_trainable(self.advnet.discriminator, False)
+            AdvNet.make_trainable(self.advnet.generator, True)
+            self.trainer.setNetwork(self.advnet.generator)
+            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'y')])
+            self.trainer.plotLoss(self.result, prefix)
+            self.trainer.plotResults(prefix, 'y')
 
-                prefix = 'pre' + str(i) + '-dis'
-                print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
-                AdvNet.make_trainable(self.advnet.discriminator, True)
-                AdvNet.make_trainable(self.advnet.generator, False)
-                self.trainer.setNetwork(self.advnet.discriminator)
-                self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
-                self.trainer.plotLoss(self.result, prefix, True)
-            else:
-                print('\033[91m[INFO]\033[0m', '\033[91mpre-training skipped!\033[0m')
+            prefix = 'pre-dis'
+            print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
+            AdvNet.make_trainable(self.advnet.discriminator, True)
+            AdvNet.make_trainable(self.advnet.generator, False)
+            self.trainer.setNetwork(self.advnet.discriminator)
+            self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
+            self.trainer.plotLoss(self.result, prefix, True)
+            self.trainer.plotResults(prefix, 'z')
+        else:
+            print('\033[91m[INFO]\033[0m', '\033[91mpre-training skipped!\033[0m')
 
         self.output_path = '/'.join([self.output, self.describe()]) + '/'
         if not os.path.exists(self.output_path):
@@ -131,15 +132,15 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 2, epochs = self.epochs, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold)
 
             prefix = 'iter-dis' + str(i)
             mode = 'z'
             print('\033[92m[INFO] Going to inspect predction by\033[0m', prefix, '\033[92mwith mode\033[0m', mode)
             self.trainer.plotResults(prefix, mode)
 
-#            self.trainer.setNetwork(self.advnet.adversary)
-#            self.trainer.plotIteration(i+0.5)
+            self.trainer.setNetwork(self.advnet.adversary)
+            self.trainer.plotIteration(i+0.5)
 
         print('\033[92m[INFO]\033[0m', self.n_iteraction, '\033[92mIteration done, storing and plotting results.\033[0m')
         self.trainer.setNetwork(self.advnet.adversary)
