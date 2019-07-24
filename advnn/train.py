@@ -70,6 +70,9 @@ class Train(object):
         #store the content
         with open(self.output_path + self.name + '_event.pkl', 'wb') as pkl:
             pickle.dump(scaler, pkl)
+        #store the content
+        with open(self.output_path + self.name + '_event_py2.pkl', 'wb') as pkl:
+            pickle.dump(scaler, pkl, protocol=2)
 
     @property
     def shape(self):

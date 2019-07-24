@@ -48,15 +48,15 @@ if __name__ == '__main__':
         'lr': ['0.005'],
         'activation': ['elu'],
         'dropout_rate': ['0.2'],
-        'preTrain_epochs': ['5'],
+        'preTrain_epochs': ['2', '5'],
         'hidden_auxNlayer': ['5'],
         'hidden_auxNnode': ['20'],
         'problem': ['1'],
         'n_iteraction': ['100'],
-        'epochs': ['1'],
+        'epochs': ['1','3'],
         'alr': ['0.0000001'],
         'amomentum': ['0.6'],
-        'lam': ['0.1'],
+        'lam': ['0.1', '0.2', '0.3', '0.4', '0.5'],
     }
 
     if jobname == 'DNN':
