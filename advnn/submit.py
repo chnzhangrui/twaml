@@ -20,15 +20,15 @@ if __name__ == '__main__':
     base_directory = os.getcwd()
     
     inputs = {'name': '0j',
-        'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5/low-massscaled/sig_zero_jet.h5',
-        'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5/low-massscaled/bkg_zero_jet.h5',
+        'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5/low-massscaled/sig_one_jet.h5',
+        'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5/low-massscaled/bkg_one_jet.h5',
         'syssig_h5': '/cephfs/user/rzhang/Wtr21/run/v28/h5files/tW_DS_2j2b.h5',
-        #'variables': ['Z_PT_FSR', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead', 'Muons_PT_Sub', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],
-        'variables': ['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],
+        #'variables': ['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],
+        'variables': ['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1'],
     }
     if 'macproruizhang2019' not in os.uname()[1] and 'macbook' not in os.uname()[1].lower():
-        inputs['signal_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-massscaled/sig_zero_jet.h5'
-        inputs['backgd_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-massscaled/bkg_zero_jet.h5'
+        inputs['signal_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-massscaled/sig_one_jet.h5'
+        inputs['backgd_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-massscaled/bkg_one_jet.h5'
 
     jobname = sys.argv[1]
     batch = Batch(jobname, base_directory, inputs)
@@ -48,15 +48,15 @@ if __name__ == '__main__':
         'lr': ['0.005'],
         'activation': ['elu'],
         'dropout_rate': ['0.2'],
-        'preTrain_epochs': ['2', '5'],
+        'preTrain_epochs': ['2'],
         'hidden_auxNlayer': ['5'],
         'hidden_auxNnode': ['20'],
         'problem': ['1'],
         'n_iteraction': ['100'],
-        'epochs': ['1','3'],
+        'epochs': ['1', '3'],
         'alr': ['0.0000001'],
         'amomentum': ['0.6'],
-        'lam': ['0.1', '0.2', '0.3', '0.4', '0.5'],
+        'lam': ['0.1'],
     }
 
     if jobname == 'DNN':
