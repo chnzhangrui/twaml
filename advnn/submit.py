@@ -19,12 +19,12 @@ def parse_options(args):
 if __name__ == '__main__':
     base_directory = os.getcwd()
     
-    inputs = {'name': '0j',
+    inputs = {'name': '1j',
         'signal_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5/low-massscaled/sig_one_jet.h5',
         'backgd_h5': '/Users/zhangrui/Work/Code/ML/ANN/h5/low-massscaled/bkg_one_jet.h5',
         'syssig_h5': '/cephfs/user/rzhang/Wtr21/run/v28/h5files/tW_DS_2j2b.h5',
         #'variables': ['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'],
-        'variables': ['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1'],
+        'variables': ['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub', 'Jets_PT_Lead_scaled', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1'],
     }
     if 'macproruizhang2019' not in os.uname()[1] and 'macbook' not in os.uname()[1].lower():
         inputs['signal_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-massscaled/sig_one_jet.h5'
