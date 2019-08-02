@@ -11,6 +11,11 @@ import os
 from sklearn.preprocessing import StandardScaler
 import pickle
 
+from numpy.random import seed
+seed(1234)
+from tensorflow import set_random_seed
+set_random_seed(2345)
+
 
 class Train(object):
     def describe(self): return self.__class__.__name__
@@ -272,7 +277,7 @@ class Train(object):
             plt.savefig(self.output_path + self.name + '_iter' + str(it) + '.pdf', format = 'pdf')
             plt.clf()
 
-        if not it % 5:
+        if (it % 5 == 0) or (it < 10):
             plot_twolosses()
 
     def saveLoss(self):

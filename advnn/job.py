@@ -123,12 +123,13 @@ class JobAdv(Job):
             mode = 'y'
             print('\033[92m[DEBUG] Going to inspect predction by\033[0m', prefix, '\033[92mwith mode\033[0m', mode)
             self.trainer.setNetwork(self.advnet.generator)
-            self.trainer.plotResults(prefix, mode)
+            if not i % 5:
+                self.trainer.plotResults(prefix, mode)
 
             if not i % 5:
                 self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
 
-            print('\033[92m[INFO] Going to train\033[0m', i, '\033[92miteration, generator (1st) with epochs\033[0m', self.epochs)
+            print('\033[92m[INFO] Going to train\033[0m', i, '\033[92miteration, discriminator (2nd) with epochs\033[0m', 1)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
@@ -137,7 +138,8 @@ class JobAdv(Job):
             prefix = 'iter-dis' + str(i)
             mode = 'z'
             print('\033[92m[INFO] Going to inspect predction by\033[0m', prefix, '\033[92mwith mode\033[0m', mode)
-            self.trainer.plotResults(prefix, mode)
+            if not i % 5:
+                self.trainer.plotResults(prefix, mode)
 
             self.trainer.setNetwork(self.advnet.adversary)
             self.trainer.plotIteration(i+0.5)
