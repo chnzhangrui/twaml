@@ -176,7 +176,9 @@ class Batch(object):
         conda activate twaml
         dest={base_directory}
         source $dest../.venvs/twaml-venv-lxpus7/bin/activate
-        python {program}/submit.py {mode} _run $*
+        region=$1
+        shift
+        python {program}/submit.py {mode} $region _run $*
         \cp -r job__* $dest/
         unset dest
         """.split('\n')[1:]).format(

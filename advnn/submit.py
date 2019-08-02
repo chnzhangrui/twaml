@@ -48,11 +48,14 @@ if __name__ == '__main__':
         inputs['2j']['backgd_h5'] = '/afs/cern.ch/user/z/zhangr/work/Hmumu/h5/low-massscaled/bkg_two_jet.h5'
 
     jobname = sys.argv[1]
-    batch = Batch(jobname, base_directory, inputs['0j'])
-    args = parse_options(sys.argv[2:])
+    region = sys.argv[2]
+    print('\033[92m[INFO] Run region:\033[0m', inputs[region])
+    batch = Batch(jobname, base_directory, inputs[region])
+    args = parse_options(sys.argv[3:])
 
     ''' Grid search '''
     DNN_job_array = {
+        region: [''],
         'hidden_Nlayer': ['5', '10'],
         'hidden_Nnode': ['10', '30', '50'],
         'lr': ['0.001', '0.005'],
@@ -60,6 +63,7 @@ if __name__ == '__main__':
         'dropout_rate': ['0.2', '0.5'],
     }
     ANN_job_array = {
+        region: [''],
         'hidden_Nlayer': ['5'],
         'hidden_Nnode': ['50'],
         'lr': ['0.005'],

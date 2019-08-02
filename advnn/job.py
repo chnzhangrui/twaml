@@ -16,8 +16,8 @@ class Job(object):
         self.momentum = float(momentum)
         self.activation = activation
         self.dropout_rate = float(dropout_rate)
-        self.output = 'job__l{}n{}_lr{}mom{}_{}_k{}_dp{}_e{}_plb{}'.format(self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.dropout_rate, self.epochs, self.problem) if output is None else output
         self.name = self.output if name is None else name
+        self.output = 'job_{}__l{}n{}_lr{}mom{}_{}_k{}_dp{}_e{}_plb{}'.format(self.name, self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.dropout_rate, self.epochs, self.problem) if output is None else output
 
         self.para_train = para_train
         para_train['base_directory'] = self.output
@@ -100,7 +100,7 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 2, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
+            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
             self.trainer.plotLoss(self.result, prefix, True)
             self.trainer.plotResults(prefix, 'z')
         else:
@@ -123,10 +123,10 @@ class JobAdv(Job):
             mode = 'y'
             print('\033[92m[DEBUG] Going to inspect predction by\033[0m', prefix, '\033[92mwith mode\033[0m', mode)
             self.trainer.setNetwork(self.advnet.generator)
-            if not i % 5:
+            if (i % 5 == 0):
                 self.trainer.plotResults(prefix, mode)
 
-            if not i % 5:
+            if (i % 5 == 0):
                 self.saveModel(self.output_path + self.trainer.name + '_' + str(i))
 
             print('\033[92m[INFO] Going to train\033[0m', i, '\033[92miteration, discriminator (2nd) with epochs\033[0m', 1)
@@ -138,7 +138,7 @@ class JobAdv(Job):
             prefix = 'iter-dis' + str(i)
             mode = 'z'
             print('\033[92m[INFO] Going to inspect predction by\033[0m', prefix, '\033[92mwith mode\033[0m', mode)
-            if not i % 5:
+            if (i % 5 == 0) or (i<2):
                 self.trainer.plotResults(prefix, mode)
 
             self.trainer.setNetwork(self.advnet.adversary)
