@@ -11,10 +11,10 @@ import os
 from sklearn.preprocessing import StandardScaler
 import pickle
 
-from numpy.random import seed
-seed(1234)
-from tensorflow import set_random_seed
-set_random_seed(2345)
+#from numpy.random import seed
+#seed(678)
+#from tensorflow import set_random_seed
+#set_random_seed(123)
 
 
 class Train(object):
@@ -220,7 +220,7 @@ class Train(object):
 
         names = ['Absolute', 'Normalised']
         for density in [0, 1]:
-            plt.subplot(1, 2, density + 1)
+            ax = plt.subplot(1, 2, density + 1)
 
             plt.hist(train_predict[self.y_train[self.fold] == self.signal_label], range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Training ' + self.signal_latex)
             plt.hist(train_predict[self.y_train[self.fold] == self.backgd_label], range = [xlo, xhi], bins = nbin, histtype = 'step', density = density, label='Training ' + self.backgd_latex)
@@ -230,6 +230,8 @@ class Train(object):
             plt.legend()
             plt.xlabel('Response' if mode.lower() == 'y' else 'Mass prediction', horizontalalignment = 'left', fontsize = 'large')
             plt.title(names[density])
+            plt.text(0.1, 0.62, 'Train AUC: ' + f"{train_AUC*100:.2%}", transform=ax.transAxes)
+            plt.text(0.1, 0.55, 'Test AUC: ' + f"{test_AUC*100:.2%}", transform=ax.transAxes)
         plt.savefig(self.output_path + self.name + '_' + name + '_' + mode + '_response' + '.pdf', format='pdf')
         plt.clf()
 
