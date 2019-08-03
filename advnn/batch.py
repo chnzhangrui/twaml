@@ -179,7 +179,7 @@ class Batch(object):
         region=$1
         shift
         python {program}/submit.py {mode} $region _run $*
-        \cp -r job__* $dest/
+        \cp -r job_* $dest/
         unset dest
         """.split('\n')[1:]).format(
                 base_directory = self.base_directory,

@@ -96,11 +96,12 @@ class JobAdv(Job):
             self.trainer.plotResults(prefix, 'y')
 
             prefix = 'pre-dis'
-            print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', self.preTrain_epochs)
+            dis_preTrain_epochs = 1
+            print('\033[92m[INFO]\033[0m', '\033[92mpre-training discriminator (2nd) with epochs\033[0m', dis_preTrain_epochs)
             AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
+            self.result = self.trainer.train(mode = 2, epochs = dis_preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
             self.trainer.plotLoss(self.result, prefix, True)
             self.trainer.plotResults(prefix, 'z')
         else:
@@ -116,7 +117,10 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, False)
             AdvNet.make_trainable(self.advnet.generator, True)
             self.trainer.setNetwork(self.advnet.adversary)
-            self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'yz')])
+
+            AdvNet.make_trainable(self.advnet.discriminator, True)
+            AdvNet.make_trainable(self.advnet.generator, True)
             self.trainer.plotIteration(i)
 
             prefix = 'iter-gen' + str(i)
@@ -133,7 +137,7 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold)
+            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
 
             prefix = 'iter-dis' + str(i)
             mode = 'z'
@@ -141,8 +145,8 @@ class JobAdv(Job):
             if (i % 5 == 0) or (i<2):
                 self.trainer.plotResults(prefix, mode)
 
-            self.trainer.setNetwork(self.advnet.adversary)
-            self.trainer.plotIteration(i+0.5)
+            #self.trainer.setNetwork(self.advnet.adversary)
+            #self.trainer.plotIteration(i+0.5)
 
         print('\033[92m[INFO]\033[0m', self.n_iteraction, '\033[92mIteration done, storing and plotting results.\033[0m')
         self.trainer.setNetwork(self.advnet.adversary)

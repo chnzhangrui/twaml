@@ -110,6 +110,7 @@ class Train(object):
         '''
         self.epochs = epochs
         self.fold = fold
+        self.batch_size = 10000
 
         if mode == 0:
             checkpoint = keras.callbacks.ModelCheckpoint(self.output_path + self.name + '_model_{epoch:04d}.h5', period=int(self.epochs/10.)) 
@@ -117,18 +118,18 @@ class Train(object):
             model_json = self.network.to_json()
             with open(self.output_path + self.name + '_model.json', 'w') as json_file:
                 json_file.write(model_json)
-            return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
+            return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = self.batch_size,
                 validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=[checkpoint])
         elif mode == 1:
-            return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
+            return self.network.fit(self.X_train[self.fold], self.y_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = self.batch_size,
                 validation_data = (self.X_test[self.fold], self.y_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=callbacks)
         elif mode == 2:
             assert (self.has_syst or self.has_mass)
-            return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = 512,
+            return self.network.fit(self.X_train[self.fold], self.z_train[self.fold], sample_weight = self.w_train[self.fold], batch_size = self.batch_size,
                 validation_data = (self.X_test[self.fold], self.z_test[self.fold], self.w_test[self.fold]), epochs = self.epochs, callbacks=callbacks)
         elif mode == 3:
             assert (self.has_syst or self.has_mass)
-            return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = 512,
+            return self.network.fit(self.X_train[self.fold],  [self.y_train[self.fold], self.z_train[self.fold]], sample_weight = [self.w_train[self.fold], self.w_train[self.fold]], batch_size = self.batch_size,
                 validation_data = (self.X_test[self.fold], [self.y_test[self.fold], self.z_test[self.fold]], [self.w_test[self.fold], self.w_test[self.fold]]), epochs = self.epochs, callbacks=callbacks)
 
     def evaluate(self, mode = 'y'):
@@ -230,8 +231,8 @@ class Train(object):
             plt.legend()
             plt.xlabel('Response' if mode.lower() == 'y' else 'Mass prediction', horizontalalignment = 'left', fontsize = 'large')
             plt.title(names[density])
-            plt.text(0.1, 0.62, 'Train AUC: ' + f"{train_AUC*100:.2%}", transform=ax.transAxes)
-            plt.text(0.1, 0.55, 'Test AUC: ' + f"{test_AUC*100:.2%}", transform=ax.transAxes)
+            plt.text(0.1, 0.70, 'Train AUC: ' + f"{train_AUC:.2%}", transform=ax.transAxes)
+            plt.text(0.1, 0.65, 'Test AUC: ' + f"{test_AUC:.2%}", transform=ax.transAxes)
         plt.savefig(self.output_path + self.name + '_' + name + '_' + mode + '_response' + '.pdf', format='pdf')
         plt.clf()
 
@@ -260,6 +261,13 @@ class Train(object):
         self.losses_train['L_gen'].append(loss_train[1][None][0])
         self.losses_train['L_dis'].append(-loss_train[2][None][0])
         self.losses_train['L_diff'].append(loss_train[0][None][0])
+        print('\033[92m[DEBUG]\033[0m', it, 'loss1: (', self.losses_train['L_gen'][-1], self.losses_test['L_gen'][-1], '); loss2: (', self.losses_train['L_dis'][-1], self.losses_test['L_dis'][-1], '); lossAll: (', self.losses_train['L_diff'][-1], self.losses_test['L_diff'][-1], ')')
+        print('\033[92m[DEBUG] Train Loss_gen\033[0m', self.losses_train['L_gen'])
+        print('\033[92m[DEBUG] Test  Loss_gen\033[0m', self.losses_test['L_gen'])
+        print('\033[92m[DEBUG] Train Loss_dis\033[0m', self.losses_train['L_dis'])
+        print('\033[92m[DEBUG] Test  Loss_dis\033[0m', self.losses_test['L_dis'])
+        print('\033[92m[DEBUG] Train Loss_diff\033[0m', self.losses_train['L_diff'])
+        print('\033[92m[DEBUG] Test  Loss_diff\033[0m', self.losses_test['L_diff'])
 
         def plot_twolosses():
             idxes = ['L_gen', 'L_dis', 'L_diff']
