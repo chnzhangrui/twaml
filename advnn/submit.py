@@ -72,6 +72,7 @@ if __name__ == '__main__':
         'preTrain_epochs': ['2'],
         'hidden_auxNlayer': ['5'],
         'hidden_auxNnode': ['20'],
+        'batch_size': ['10000', '15000'],
         'problem': ['1'],
         'n_iteraction': ['100'],
         'epochs': ['1', '3'],

@@ -17,7 +17,7 @@ class Job(object):
         self.activation = activation
         self.dropout_rate = float(dropout_rate)
         self.name = self.output if name is None else name
-        self.output = 'job_{}__l{}n{}_lr{}mom{}_{}_k{}_dp{}_e{}_plb{}'.format(self.name, self.hidden_Nlayer, self.hidden_Nnode, self.lr, self.momentum, self.activation, self.nfold, self.dropout_rate, self.epochs, self.problem) if output is None else output
+        self.output = f'job_{self.name}__l{self.hidden_Nlayer}n{self.hidden_Nlayer}_lr{self.lr}mom{self.momentum}_{self.activation}_k{self.nfold}_dp{self.dropout_rate}_e{self.epochs}_plb{self.problem}' if output is None else output
 
         self.para_train = para_train
         para_train['base_directory'] = self.output
@@ -36,7 +36,7 @@ class Job(object):
         self.trainer.setNetwork(self.deepnet.generator)
         
         ''' Run the training '''
-        self.result = self.trainer.train(mode = 0, epochs = self.epochs, fold = self.train_fold)
+        self.result = self.trainer.train(mode = 0, epochs = self.epochs, fold = self.train_fold, batch_size = 512)
         self.trainer.plotLoss(self.result)
         self.trainer.plotResults()
 
@@ -50,16 +50,17 @@ class Job(object):
         print('Saved', prefix, 'to disk')
 
 class JobAdv(Job):
-    def __init__(self, preTrain_epochs, hidden_auxNlayer, hidden_auxNnode, n_iteraction, lam, alr, amomentum, *args, **kwargs):
+    def __init__(self, preTrain_epochs, hidden_auxNlayer, hidden_auxNnode, batch_size, n_iteraction, lam, alr, amomentum, *args, **kwargs):
         super(self.__class__, self).__init__(*args, **kwargs)
         self.preTrain_epochs = int(preTrain_epochs)
         self.hidden_auxNlayer = int(hidden_auxNlayer)
         self.hidden_auxNnode = int(hidden_auxNnode)
+        self.batch_size = int(batch_size)
         self.n_iteraction = int(n_iteraction)
         self.lam = float(lam)
         self.alr = float(alr)
         self.amomentum = float(amomentum)
-        self.output = '{}__E{}_L{}N{}_alr{}mom{}_it{}_Loss{}_lam{}'.format(self.output, self.preTrain_epochs, self.hidden_auxNlayer, self.hidden_auxNnode, self.alr, self.amomentum, self.n_iteraction, self.problem, self.lam)
+        self.output = f'{self.output}__E{self.preTrain_epochs}_L{self.hidden_auxNlayer}N{self.hidden_auxNnode}_BS{self.batch_size}_alr{self.alr}mom{self.amomentum}_it{self.n_iteraction}_Loss{self.problem}_lam{self.lam}'
         self.para_train['base_directory'] = self.output
         print('\033[92m[INFO]\033[0m', '\033[92mJobname \033[0m', self.output)
         
@@ -91,7 +92,7 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, False)
             AdvNet.make_trainable(self.advnet.generator, True)
             self.trainer.setNetwork(self.advnet.generator)
-            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'y')])
+            self.result = self.trainer.train(mode = 1, epochs = self.preTrain_epochs, fold = self.train_fold, batch_size = self.batch_size, callbacks=[Evaluate(prefix, self.trainer, 'y')])
             self.trainer.plotLoss(self.result, prefix)
             self.trainer.plotResults(prefix, 'y')
 
@@ -101,7 +102,7 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 2, epochs = dis_preTrain_epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
+            self.result = self.trainer.train(mode = 2, epochs = dis_preTrain_epochs, fold = self.train_fold, batch_size = self.batch_size, callbacks=[Evaluate(prefix, self.trainer, 'z')])
             self.trainer.plotLoss(self.result, prefix, True)
             self.trainer.plotResults(prefix, 'z')
         else:
@@ -117,7 +118,7 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, False)
             AdvNet.make_trainable(self.advnet.generator, True)
             self.trainer.setNetwork(self.advnet.adversary)
-            self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'yz')])
+            self.result = self.trainer.train(mode = 3, epochs = self.epochs, fold = self.train_fold, batch_size = self.batch_size, callbacks=[Evaluate(prefix, self.trainer, 'yz')])
 
             AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, True)
@@ -137,7 +138,7 @@ class JobAdv(Job):
             AdvNet.make_trainable(self.advnet.discriminator, True)
             AdvNet.make_trainable(self.advnet.generator, False)
             self.trainer.setNetwork(self.advnet.discriminator)
-            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold, callbacks=[Evaluate(prefix, self.trainer, 'z')])
+            self.result = self.trainer.train(mode = 2, epochs = 1, fold = self.train_fold, batch_size = self.batch_size, callbacks=[Evaluate(prefix, self.trainer, 'z')])
 
             prefix = 'iter-dis' + str(i)
             mode = 'z'

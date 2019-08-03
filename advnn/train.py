@@ -102,7 +102,7 @@ class Train(object):
             self.z_train[i], self.z_test[i] = self.z[train_idx], self.z[test_idx]
             self.w_train[i], self.w_test[i] = self.w[train_idx], self.w[test_idx]
 
-    def train(self, mode, epochs, fold, callbacks = ''):
+    def train(self, mode, epochs, fold, batch_size, callbacks = ''):
         '''
         mode = 0: one target mode => signal vs backgd
                1: one target mode => signal vs syssig
@@ -110,7 +110,7 @@ class Train(object):
         '''
         self.epochs = epochs
         self.fold = fold
-        self.batch_size = 10000
+        self.batch_size = batch_size
 
         if mode == 0:
             checkpoint = keras.callbacks.ModelCheckpoint(self.output_path + self.name + '_model_{epoch:04d}.h5', period=int(self.epochs/10.)) 
