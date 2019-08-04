@@ -41,7 +41,7 @@ def apply(json, h5, pkl, root_in, root_out):
         elif 'one_jet' in root_in:
             variables.append(tree2array(tree_list[-1], branches=['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub', 'Jets_PT_Lead_scaled', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1'], selection='1'))
         elif 'two_jet' in root_in:
-            variables.append(tree2array(tree_list[-1], branches=[''], selection='1'))
+            variables.append(tree2array(tree_list[-1], branches=['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub', 'Jets_PT_Lead_scaled', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1', 'Jets_PT_Sub_scaled', 'Jets_Eta_Sub', 'DeltaPhi_mumuj2', 'Jets_PT_jj_scaled', 'Jets_Y_jj', 'DeltaPhi_mumujj', 'Jets_Minv_jj', 'metFinalTrk' ], selection='1'))
         else:
             raise RuntimeError('Unknown jet bin: {}'.format(root_in))
         weight.append(tree2array(tree_list[-1], branches=[ 'weight' ], selection='1'))
