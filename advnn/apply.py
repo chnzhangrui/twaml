@@ -16,7 +16,7 @@ def loadModel(json_file, h5_file):
     loaded_model.load_weights(h5_file)
     return loaded_model
 
-def apply(json, h5, pkl, root_in, root_out):
+def apply(json, h5, pkl, root_in, root_out, treename):
     inFile = TFile(root_in)
     print(inFile.GetName())
 
@@ -25,7 +25,7 @@ def apply(json, h5, pkl, root_in, root_out):
     outBranch = 'DNN_response'
 
     ''' implement ANN on each ttree '''
-    for name in ['AppInput']:
+    for name in [treename]:
         print('Implementing:', name)
 
         ''' *array* is [eventVariables, EventWeight]; *event* is [eventVariables]; *weight* is [EventWeight]'''
@@ -35,13 +35,13 @@ def apply(json, h5, pkl, root_in, root_out):
         array = []
         test_event = np.array
 
-        tree_list.append(inFile.Get(name))
         if 'zero_jet' in root_in:
-            variables.append(tree2array(tree_list[-1], branches=['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub'], selection='1'))
+            tree_list.append(inFile.Get('zero_jet'))
+            variables.append(tree2array(tree_list[-1], branches=['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar'], selection='1'))
         elif 'one_jet' in root_in:
-            variables.append(tree2array(tree_list[-1], branches=['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub', 'Jets_PT_Lead_scaled', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1'], selection='1'))
+            variables.append(tree2array(tree_list[-1], branches=['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Jets_PT_Lead', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1'], selection='1'))
         elif 'two_jet' in root_in:
-            variables.append(tree2array(tree_list[-1], branches=['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Muons_PT_Lead_scaled', 'Muons_PT_Sub_scaled', 'Muons_Eta_Lead', 'Muons_Eta_Sub', 'Muons_Phi_Lead', 'Muons_Phi_Sub', 'Jets_PT_Lead_scaled', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1', 'Jets_PT_Sub_scaled', 'Jets_Eta_Sub', 'DeltaPhi_mumuj2', 'Jets_PT_jj_scaled', 'Jets_Y_jj', 'DeltaPhi_mumujj', 'Jets_Minv_jj', 'metFinalTrk' ], selection='1'))
+            variables.append(tree2array(tree_list[-1], branches=['Z_PT_FSR_scaled', 'Z_Y_FSR', 'Muons_CosThetaStar', 'Jets_PT_Lead', 'Jets_Eta_Lead', 'DeltaPhi_mumuj1', 'Jets_PT_Sub', 'Jets_Eta_Sub', 'DeltaPhi_mumuj2', 'Jets_PT_jj', 'Jets_Y_jj', 'DeltaPhi_mumujj', 'Jets_Minv_jj', 'Event_MET' ], selection='1'))
         else:
             raise RuntimeError('Unknown jet bin: {}'.format(root_in))
         weight.append(tree2array(tree_list[-1], branches=[ 'weight' ], selection='1'))
@@ -78,9 +78,10 @@ def apply(json, h5, pkl, root_in, root_out):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--input", dest="input", help="Input ROOT file", metavar="FILE", default='data_zero_jet.root')
+    parser.add_argument("--treename", dest="treename", help="Input Tree name", metavar="FILE", default='zero_jet')
     parser.add_argument("--output", dest="output", help="Output ROOT file", metavar="FILE", default='ANN_data_zero_jet.root')
     parser.add_argument("--json", dest="json", help="Model json file", metavar="FILE", default='/Users/zhangrui/Work/Code/ML/ANN/training/job__l5n50_lr0.01mom0.8_elu_k3_dp0.2_e1_plb1__E20_L5N10_it100_Loss1_lam1.0/JobAdv/0j_100.json')
     parser.add_argument("--h5", dest="h5", help="Model weight h5 file", metavar="FILE", default='/Users/zhangrui/Work/Code/ML/ANN/training/job__l5n50_lr0.01mom0.8_elu_k3_dp0.2_e1_plb1__E20_L5N10_it100_Loss1_lam1.0/JobAdv/0j_100.h5')
     parser.add_argument("--pkl", dest="pkl", help="Event stored pkl file after transformation", metavar="FILE", default='/Users/zhangrui/Work/Code/ML/ANN/training/job__l5n50_lr0.01mom0.8_elu_k3_dp0.2_e1_plb1__E20_L5N10_it100_Loss1_lam1.0/Train/0j_event.pkl')
     args = parser.parse_args()
-    apply(root_in = args.input, root_out = args.output, json = args.json, h5 = args.h5, pkl = args.pkl)
+    apply(root_in = args.input, treename = args.treename, root_out = args.output, json = args.json, h5 = args.h5, pkl = args.pkl)
