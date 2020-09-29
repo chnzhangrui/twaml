@@ -201,8 +201,8 @@ class Train(object):
         train_predict = self.network.predict(self.X_train[self.fold])
         test_predict = self.network.predict(self.X_test[self.fold])
 
-        train_FP, train_TP, train_TH = roc_curve(self.y_train[self.fold], train_predict)
-        test_FP, test_TP, test_TH = roc_curve(self.y_test[self.fold], test_predict)
+        train_FP, train_TP, train_TH = roc_curve(self.y_train[self.fold], train_predict, sample_weight=self.w_train[self.fold])
+        test_FP, test_TP, test_TH = roc_curve(self.y_test[self.fold], test_predict, sample_weight=self.w_test[self.fold])
         train_AUC = auc(train_FP, train_TP)
         test_AUC = auc(test_FP, test_TP)
 
